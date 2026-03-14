@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import AdminDashboard from "./Admin.jsx";
 
 // ─── CONFIG ───
 const BINDING_OPTIONS = [
@@ -189,7 +188,18 @@ function HomePage({ onProceed }) {
   const handleFile = (f) => {
     if (f && f.type === "application/pdf") {
       setFile(f);
-      setPages(Math.max(1, Math.floor(f.size / 50000) || 1));
+      // Better page estimation: read PDF and count /Page objects
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = new Uint8Array(e.target.result);
+        // Count /Type /Page occurrences (rough but much better than file size)
+        let count = 0;
+        const str = new TextDecoder("latin1").decode(text);
+        const matches = str.match(/\/Type\s*\/Page[^s]/g);
+        if (matches) count = matches.length;
+        setPages(Math.max(1, count || Math.ceil(f.size / 30000) || 1));
+      };
+      reader.readAsArrayBuffer(f);
     }
   };
 
@@ -200,18 +210,28 @@ function HomePage({ onProceed }) {
 
   return (
     <div style={{ background: "linear-gradient(180deg, #FFF9F5 0%, #FFFFFF 40%)", minHeight: "80vh" }}>
+      <style>{`
+        @media(max-width:800px){
+          .pk-hero-title{font-size:30px !important;}
+          .pk-hero-sub{font-size:14px !important;}
+        }
+        @media(max-width:500px){
+          .pk-hero-title{font-size:26px !important;}
+        }
+      `}</style>
       <div style={{ textAlign: "center", padding: "48px 24px 24px" }}>
         <div style={{ display: "inline-block", padding: "6px 16px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "#FFF3ED", color: "#FF6B35", marginBottom: 16, letterSpacing: 1 }}>
           UPLOAD &rarr; CONFIGURE &rarr; PAY &rarr; DELIVERED
         </div>
-        <h1 style={{ fontSize: 44, fontWeight: 700, color: "#1a1a2e", margin: "0 0 10px", lineHeight: 1.15, fontFamily: "'DM Serif Display', Georgia, serif" }}>
+        <h1 className="pk-hero-title" style={{ fontSize: 44, fontWeight: 700, color: "#1a1a2e", margin: "0 0 10px", lineHeight: 1.15, fontFamily: "'DM Serif Display', Georgia, serif" }}>
           Get Your Documents<br /><span style={{ background: "linear-gradient(135deg, #FF6B35, #FF8C42)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Printed & Delivered</span>
         </h1>
-        <p style={{ fontSize: 16, color: "#888", maxWidth: 480, margin: "0 auto" }}>Upload your PDF, choose print options, and we deliver professional prints to your doorstep.</p>
+        <p className="pk-hero-sub" style={{ fontSize: 16, color: "#888", maxWidth: 480, margin: "0 auto" }}>Upload your PDF, choose print options, and we deliver professional prints to your doorstep.</p>
       </div>
 
-      <div style={{ maxWidth: 920, margin: "0 auto", padding: "0 24px 60px", display: "grid", gridTemplateColumns: "1fr 340px", gap: 28, alignItems: "start" }}>
-        <div>
+      <div style={{ maxWidth: 920, margin: "0 auto", padding: "0 24px 60px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 28 }}>
+        <div style={{ flex: "1 1 500px", minWidth: 0 }}>
           {/* Upload Zone */}
           <div onClick={() => fileRef.current?.click()}
             onDragOver={e => { e.preventDefault(); setDragOver(true); }}
@@ -268,14 +288,22 @@ function HomePage({ onProceed }) {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "#999", display: "block", marginBottom: 6 }}>PAGES</label>
-                <input type="number" min="1" value={pages} onChange={e => setPages(Math.max(1, +e.target.value))}
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#999", display: "block", marginBottom: 6 }}>PAGES {file && <span style={{ color: "#16a34a" }}>(auto-detected)</span>}</label>
+                <input type="number" min="1" value={pages} onChange={e => { const v = e.target.value; setPages(v === "" ? "" : Math.max(1, parseInt(v) || 1)); }}
+                  onBlur={() => { if (!pages || pages < 1) setPages(1); }}
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #e0e0e0", fontSize: 16, fontWeight: 600, outline: "none", boxSizing: "border-box" }} />
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: "#999", display: "block", marginBottom: 6 }}>COPIES</label>
-                <input type="number" min="1" value={copies} onChange={e => setCopies(Math.max(1, +e.target.value))}
-                  style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #e0e0e0", fontSize: 16, fontWeight: 600, outline: "none", boxSizing: "border-box" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 0, border: "1.5px solid #e0e0e0", borderRadius: 10, overflow: "hidden" }}>
+                  <button onClick={() => setCopies(Math.max(1, copies - 1))}
+                    style={{ width: 44, height: 44, border: "none", background: copies <= 1 ? "#f5f5f5" : "#FFF3ED", color: copies <= 1 ? "#ccc" : "#FF6B35", fontSize: 20, fontWeight: 700, cursor: copies <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                  <input type="number" min="1" value={copies} onChange={e => { const v = e.target.value; setCopies(v === "" ? "" : Math.max(1, parseInt(v) || 1)); }}
+                    onBlur={() => { if (!copies || copies < 1) setCopies(1); }}
+                    style={{ flex: 1, padding: "10px 8px", border: "none", borderLeft: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: 16, fontWeight: 600, outline: "none", textAlign: "center", boxSizing: "border-box" }} />
+                  <button onClick={() => setCopies(copies + 1)}
+                    style={{ width: 44, height: 44, border: "none", background: "#FFF3ED", color: "#FF6B35", fontSize: 20, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                </div>
               </div>
             </div>
             <div>
@@ -289,8 +317,9 @@ function HomePage({ onProceed }) {
           </div>
         </div>
 
-        {/* Right: Sticky Price Summary */}
-        <div style={{ position: "sticky", top: 80 }}>
+        {/* Order Summary - below on mobile, sticky right on desktop */}
+        <div className="pk-summary" style={{ flex: "0 0 340px", position: "sticky", top: 80 }}>
+          <style>{`@media(max-width:800px){.pk-summary{flex:1 1 100% !important;position:static !important;order:2;}}`}</style>
           <div style={{ background: "#fff", borderRadius: 16, padding: 24, border: "1px solid #eee", boxShadow: "0 8px 30px rgba(0,0,0,0.04)" }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e", margin: "0 0 16px" }}>Order Summary</h3>
             {file ? (
@@ -355,6 +384,7 @@ function HomePage({ onProceed }) {
               </div>
             ))}
           </div>
+        </div>
         </div>
       </div>
     </div>
@@ -621,12 +651,6 @@ export default function PrintKaro() {
     }
   };
 
-  // Check if URL has #admin
-  const isAdmin = typeof window !== "undefined" && window.location.hash === "#admin";
-  if (isAdmin) {
-    return <AdminDashboard />;
-  }
-
   return (
     <div style={{ minHeight: "100vh", background: "#FAFAFA", fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>
       <Navbar user={user} setPage={setPage} currentPage={page} onSignOut={() => { setUser(null); setPage("home"); }} />
@@ -638,7 +662,7 @@ export default function PrintKaro() {
       {page === "orders" && <OrdersPage setPage={setPage} />}
 
       {/* WhatsApp Floating Button */}
-      <a href="https://wa.me/9239226708?text=Hi! I want to place a print order on PrintKaaro"
+      <a href="https://wa.me/91XXXXXXXXXX?text=Hi! I want to place a print order on PrintKaaro"
         target="_blank" rel="noopener noreferrer"
         style={{ position: "fixed", bottom: 24, right: 24, width: 56, height: 56, borderRadius: "50%", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "#fff", boxShadow: "0 4px 20px rgba(37,211,102,0.4)", zIndex: 99, textDecoration: "none" }}>
         💬
