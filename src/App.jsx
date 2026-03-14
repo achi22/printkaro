@@ -300,6 +300,10 @@ function HomePage({ onProceed }) {
         @media(max-width:500px){
           .pk-hero-title{font-size:26px !important;}
         }
+        input[type="number"]{font-size:16px !important;}
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+        input[type="number"]{-moz-appearance:textfield;appearance:textfield;}
       `}</style>
       <div style={{ textAlign: "center", padding: "48px 24px 24px" }}>
         <div style={{ display: "inline-block", padding: "6px 16px", borderRadius: 20, fontSize: 12, fontWeight: 600, background: "#FFF3ED", color: "#FF6B35", marginBottom: 16, letterSpacing: 1 }}>
@@ -370,27 +374,27 @@ function HomePage({ onProceed }) {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: "#999", display: "block", marginBottom: 6 }}>PAGES {file && <span style={{ color: "#16a34a" }}>(auto-detected)</span>}</label>
-                <div style={{ display: "flex", alignItems: "center", gap: 0, border: "1.5px solid #e0e0e0", borderRadius: 10, overflow: "hidden", height: 44 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#999", display: "block", marginBottom: 6 }}>PAGES {file && <span style={{ color: "#16a34a" }}>(auto)</span>}</label>
+                <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #e0e0e0", borderRadius: 8, overflow: "hidden", height: 36 }}>
                   <button onClick={() => setPages(Math.max(1, (parseInt(pages) || 1) - 1))}
-                    style={{ width: 40, height: 44, border: "none", background: pages <= 1 ? "#f5f5f5" : "#FFF3ED", color: pages <= 1 ? "#ccc" : "#FF6B35", fontSize: 18, fontWeight: 700, cursor: pages <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>−</button>
-                  <input type="number" min="1" value={pages} onChange={e => { const v = e.target.value; setPages(v === "" ? "" : Math.max(1, parseInt(v) || 1)); }}
+                    style={{ width: 30, height: 36, border: "none", background: pages <= 1 ? "#f5f5f5" : "#FFF3ED", color: pages <= 1 ? "#ccc" : "#FF6B35", fontSize: 15, fontWeight: 700, cursor: pages <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: 0 }}>−</button>
+                  <input type="number" inputMode="numeric" min="1" value={pages} onChange={e => { const v = e.target.value; setPages(v === "" ? "" : Math.max(1, parseInt(v) || 1)); }}
                     onBlur={() => { if (!pages || pages < 1) setPages(1); }}
-                    style={{ flex: 1, padding: "10px 4px", border: "none", borderLeft: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: 16, fontWeight: 600, outline: "none", textAlign: "center", boxSizing: "border-box", minWidth: 0 }} />
+                    style={{ flex: 1, padding: "4px 2px", border: "none", borderLeft: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: 16, fontWeight: 600, outline: "none", textAlign: "center", boxSizing: "border-box", minWidth: 0 }} />
                   <button onClick={() => setPages((parseInt(pages) || 1) + 1)}
-                    style={{ width: 40, height: 44, border: "none", background: "#FFF3ED", color: "#FF6B35", fontSize: 18, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>+</button>
+                    style={{ width: 30, height: 36, border: "none", background: "#FFF3ED", color: "#FF6B35", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: 0 }}>+</button>
                 </div>
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: "#999", display: "block", marginBottom: 6 }}>COPIES</label>
-                <div style={{ display: "flex", alignItems: "center", gap: 0, border: "1.5px solid #e0e0e0", borderRadius: 10, overflow: "hidden", height: 44 }}>
+                <div style={{ display: "flex", alignItems: "center", border: "1.5px solid #e0e0e0", borderRadius: 8, overflow: "hidden", height: 36 }}>
                   <button onClick={() => setCopies(Math.max(1, (parseInt(copies) || 1) - 1))}
-                    style={{ width: 40, height: 44, border: "none", background: copies <= 1 ? "#f5f5f5" : "#FFF3ED", color: copies <= 1 ? "#ccc" : "#FF6B35", fontSize: 18, fontWeight: 700, cursor: copies <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>−</button>
-                  <input type="number" min="1" value={copies} onChange={e => { const v = e.target.value; setCopies(v === "" ? "" : Math.max(1, parseInt(v) || 1)); }}
+                    style={{ width: 30, height: 36, border: "none", background: copies <= 1 ? "#f5f5f5" : "#FFF3ED", color: copies <= 1 ? "#ccc" : "#FF6B35", fontSize: 15, fontWeight: 700, cursor: copies <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: 0 }}>−</button>
+                  <input type="number" inputMode="numeric" min="1" value={copies} onChange={e => { const v = e.target.value; setCopies(v === "" ? "" : Math.max(1, parseInt(v) || 1)); }}
                     onBlur={() => { if (!copies || copies < 1) setCopies(1); }}
-                    style={{ flex: 1, padding: "10px 4px", border: "none", borderLeft: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: 16, fontWeight: 600, outline: "none", textAlign: "center", boxSizing: "border-box", minWidth: 0 }} />
+                    style={{ flex: 1, padding: "4px 2px", border: "none", borderLeft: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: 16, fontWeight: 600, outline: "none", textAlign: "center", boxSizing: "border-box", minWidth: 0 }} />
                   <button onClick={() => setCopies((parseInt(copies) || 1) + 1)}
-                    style={{ width: 40, height: 44, border: "none", background: "#FFF3ED", color: "#FF6B35", fontSize: 18, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>+</button>
+                    style={{ width: 30, height: 36, border: "none", background: "#FFF3ED", color: "#FF6B35", fontSize: 15, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, padding: 0 }}>+</button>
                 </div>
               </div>
             </div>
