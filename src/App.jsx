@@ -9,44 +9,126 @@ const BINDING_OPTIONS = [
   { id: "hardcover", name: "Hardcover", price: 150, icon: "📕" },
 ];
 
-// ─── NAVBAR ───
+// ─── NAVBAR WITH HAMBURGER ───
 function Navbar({ user, setPage, currentPage, onSignOut }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const nav = (p) => { setPage(p); setMenuOpen(false); };
+
+  const menuItems = [
+    { key: "home", label: "Home", icon: "🏠" },
+    { key: "orders", label: "My Orders", icon: "📦" },
+    { key: "account", label: "My Account", icon: "👤" },
+    { key: "about", label: "About Us", icon: "ℹ️" },
+    { key: "contact", label: "Contact Us", icon: "📞" },
+  ];
+
   return (
-    <nav style={{ background: "#fff", borderBottom: "1px solid #eee", position: "sticky", top: 0, zIndex: 50 }}>
-      <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px" }}>
-        <button onClick={() => setPage("home")} style={{ display: "flex", alignItems: "center", gap: 10, border: "none", background: "none", cursor: "pointer" }}>
-          <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg, #FF6B35, #FF8C42)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 18 }}>P</div>
-          <span style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e", fontFamily: "'DM Serif Display', Georgia, serif" }}>PrintKaro</span>
-        </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          {[
-            { key: "home", label: "Home" },
-            { key: "orders", label: "My Orders" },
-          ].map(p => (
-            <button key={p.key} onClick={() => setPage(p.key)}
-              style={{ padding: "8px 16px", borderRadius: 8, fontSize: 14, fontWeight: 500, border: "none", cursor: "pointer",
-                background: currentPage === p.key ? "#FFF3ED" : "transparent",
-                color: currentPage === p.key ? "#FF6B35" : "#666" }}>
-              {p.label}
-            </button>
-          ))}
+    <>
+      <nav style={{ background: "#fff", borderBottom: "1px solid #eee", position: "sticky", top: 0, zIndex: 50 }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px" }}>
+          <button onClick={() => nav("home")} style={{ display: "flex", alignItems: "center", gap: 10, border: "none", background: "none", cursor: "pointer" }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg, #FF6B35, #FF8C42)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 18 }}>P</div>
+            <span style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e", fontFamily: "'DM Serif Display', Georgia, serif" }}>PrintKaaro</span>
+          </button>
+
+          {/* Desktop Nav */}
+          <div className="pk-desktop-nav" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {menuItems.slice(0, 3).map(p => (
+              <button key={p.key} onClick={() => nav(p.key)}
+                style={{ padding: "8px 16px", borderRadius: 8, fontSize: 14, fontWeight: 500, border: "none", cursor: "pointer",
+                  background: currentPage === p.key ? "#FFF3ED" : "transparent",
+                  color: currentPage === p.key ? "#FF6B35" : "#666" }}>
+                {p.label}
+              </button>
+            ))}
+            {user ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
+                <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg, #FF6B35, #FF8C42)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 600 }}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span style={{ fontSize: 13, color: "#333", fontWeight: 500 }}>{user.name}</span>
+              </div>
+            ) : (
+              <button onClick={() => nav("signin")}
+                style={{ marginLeft: 8, padding: "8px 20px", borderRadius: 8, fontSize: 14, fontWeight: 600, border: "2px solid #FF6B35", background: "#fff", color: "#FF6B35", cursor: "pointer" }}>
+                Sign In
+              </button>
+            )}
+          </div>
+
+          {/* Hamburger Button (mobile) */}
+          <button className="pk-hamburger" onClick={() => setMenuOpen(!menuOpen)}
+            style={{ display: "none", border: "none", background: "none", cursor: "pointer", padding: 4, flexDirection: "column", gap: 5 }}>
+            <span style={{ display: "block", width: 24, height: 2.5, borderRadius: 2, background: menuOpen ? "#FF6B35" : "#333", transition: "all 0.2s", transform: menuOpen ? "rotate(45deg) translate(5px, 5px)" : "none" }} />
+            <span style={{ display: "block", width: 24, height: 2.5, borderRadius: 2, background: "#333", transition: "all 0.2s", opacity: menuOpen ? 0 : 1 }} />
+            <span style={{ display: "block", width: 24, height: 2.5, borderRadius: 2, background: menuOpen ? "#FF6B35" : "#333", transition: "all 0.2s", transform: menuOpen ? "rotate(-45deg) translate(5px, -5px)" : "none" }} />
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile Slide-in Menu */}
+      {menuOpen && <div onClick={() => setMenuOpen(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 60 }} />}
+      <div style={{
+        position: "fixed", top: 0, right: 0, width: 280, height: "100vh", background: "#fff", zIndex: 70,
+        transform: menuOpen ? "translateX(0)" : "translateX(100%)",
+        transition: "transform 0.25s ease", boxShadow: menuOpen ? "-4px 0 30px rgba(0,0,0,0.1)" : "none",
+        display: "flex", flexDirection: "column", overflowY: "auto"
+      }}>
+        {/* User Header in Menu */}
+        <div style={{ padding: "24px 20px 16px", borderBottom: "1px solid #f0f0f0" }}>
           {user ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: 8 }}>
-              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "linear-gradient(135deg, #FF6B35, #FF8C42)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 14, fontWeight: 600 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ width: 44, height: 44, borderRadius: "50%", background: "linear-gradient(135deg, #FF6B35, #FF8C42)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 18, fontWeight: 700 }}>
                 {user.name.charAt(0).toUpperCase()}
               </div>
-              <span style={{ fontSize: 13, color: "#333", fontWeight: 500 }}>{user.name}</span>
-              <button onClick={onSignOut} style={{ fontSize: 12, color: "#999", border: "none", background: "none", cursor: "pointer" }}>Sign out</button>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e" }}>{user.name}</div>
+                <div style={{ fontSize: 12, color: "#999" }}>{user.phone}</div>
+              </div>
             </div>
           ) : (
-            <button onClick={() => setPage("signin")}
-              style={{ marginLeft: 8, padding: "8px 20px", borderRadius: 8, fontSize: 14, fontWeight: 600, border: "2px solid #FF6B35", background: "#fff", color: "#FF6B35", cursor: "pointer" }}>
-              Sign In
+            <button onClick={() => nav("signin")}
+              style={{ width: "100%", padding: 12, borderRadius: 10, border: "none", background: "linear-gradient(135deg, #FF6B35, #FF8C42)", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+              Sign In / Sign Up
             </button>
           )}
         </div>
+
+        {/* Menu Items */}
+        <div style={{ flex: 1, padding: "8px 0" }}>
+          {menuItems.map(item => (
+            <button key={item.key} onClick={() => nav(item.key)}
+              style={{
+                width: "100%", padding: "14px 20px", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, fontSize: 15, fontWeight: 500, textAlign: "left",
+                background: currentPage === item.key ? "#FFF3ED" : "#fff",
+                color: currentPage === item.key ? "#FF6B35" : "#444",
+                borderLeft: currentPage === item.key ? "3px solid #FF6B35" : "3px solid transparent"
+              }}>
+              <span style={{ fontSize: 18 }}>{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Bottom Section */}
+        {user && (
+          <div style={{ padding: "16px 20px", borderTop: "1px solid #f0f0f0" }}>
+            <button onClick={() => { onSignOut(); setMenuOpen(false); }}
+              style={{ width: "100%", padding: 12, borderRadius: 10, border: "1.5px solid #ef4444", background: "#fff", color: "#ef4444", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+              Sign Out
+            </button>
+          </div>
+        )}
       </div>
-    </nav>
+
+      {/* CSS for mobile/desktop toggle */}
+      <style>{`
+        @media(max-width:800px) {
+          .pk-desktop-nav { display: none !important; }
+          .pk-hamburger { display: flex !important; }
+        }
+      `}</style>
+    </>
   );
 }
 
@@ -622,6 +704,221 @@ function OrdersPage({ setPage }) {
   );
 }
 
+// ─── ACCOUNT PAGE ───
+function AccountPage({ user, setPage, onSignOut }) {
+  const [savedAddresses] = useState([
+    { label: "Home", full: "123 MG Road, Balurghat, WB 733101" },
+  ]);
+
+  if (!user) {
+    return (
+      <div style={{ maxWidth: 480, margin: "0 auto", padding: "60px 24px", textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>👤</div>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e", margin: "0 0 8px" }}>Sign in to view your account</h2>
+        <p style={{ fontSize: 14, color: "#888", marginBottom: 20 }}>Manage your addresses, payment preferences, and order history.</p>
+        <button onClick={() => setPage("signin")} style={{ padding: "12px 32px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, #FF6B35, #FF8C42)", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>Sign In</button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ maxWidth: 560, margin: "0 auto", padding: "40px 24px" }}>
+      <h2 style={{ fontSize: 28, fontWeight: 700, color: "#1a1a2e", margin: "0 0 24px", fontFamily: "'DM Serif Display', Georgia, serif" }}>My Account</h2>
+
+      {/* Profile Card */}
+      <div style={{ background: "#fff", borderRadius: 14, padding: 24, border: "1px solid #eee", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, #FF6B35, #FF8C42)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 24, fontWeight: 700 }}>
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "#1a1a2e" }}>{user.name}</div>
+            <div style={{ fontSize: 13, color: "#888" }}>📱 +91 {user.phone}</div>
+            {user.email && <div style={{ fontSize: 13, color: "#888" }}>✉️ {user.email}</div>}
+          </div>
+        </div>
+        <button onClick={() => setPage("orders")} style={{ width: "100%", padding: 12, borderRadius: 10, border: "1.5px solid #e0e0e0", background: "#fff", color: "#333", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+          📦 View My Orders
+        </button>
+      </div>
+
+      {/* Saved Addresses */}
+      <div style={{ background: "#fff", borderRadius: 14, padding: 24, border: "1px solid #eee", marginBottom: 16 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e", margin: "0 0 14px" }}>Saved Addresses</h3>
+        {savedAddresses.length > 0 ? savedAddresses.map((addr, i) => (
+          <div key={i} style={{ padding: "12px 14px", background: "#f9f9f9", borderRadius: 10, marginBottom: 8 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#FF6B35", marginBottom: 2 }}>{addr.label}</div>
+            <div style={{ fontSize: 13, color: "#666" }}>{addr.full}</div>
+          </div>
+        )) : (
+          <p style={{ fontSize: 13, color: "#999" }}>No saved addresses yet. Your address will be saved when you place your first order.</p>
+        )}
+      </div>
+
+      {/* Payment Preferences */}
+      <div style={{ background: "#fff", borderRadius: 14, padding: 24, border: "1px solid #eee", marginBottom: 16 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e", margin: "0 0 14px" }}>Payment Preferences</h3>
+        <div style={{ display: "flex", gap: 10 }}>
+          <div style={{ flex: 1, padding: "14px", background: "#f9f9f9", borderRadius: 10, textAlign: "center" }}>
+            <div style={{ fontSize: 24, marginBottom: 4 }}>📱</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#333" }}>UPI</div>
+            <div style={{ fontSize: 11, color: "#999" }}>Google Pay, PhonePe</div>
+          </div>
+          <div style={{ flex: 1, padding: "14px", background: "#f9f9f9", borderRadius: 10, textAlign: "center" }}>
+            <div style={{ fontSize: 24, marginBottom: 4 }}>💳</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "#333" }}>Razorpay</div>
+            <div style={{ fontSize: 11, color: "#999" }}>Cards, Netbanking</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sign Out */}
+      <button onClick={onSignOut}
+        style={{ width: "100%", padding: 14, borderRadius: 12, border: "1.5px solid #ef4444", background: "#fff", color: "#ef4444", fontSize: 15, fontWeight: 600, cursor: "pointer" }}>
+        Sign Out
+      </button>
+    </div>
+  );
+}
+
+// ─── ABOUT US PAGE ───
+function AboutPage() {
+  return (
+    <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 24px" }}>
+      <h2 style={{ fontSize: 28, fontWeight: 700, color: "#1a1a2e", margin: "0 0 8px", fontFamily: "'DM Serif Display', Georgia, serif" }}>About PrintKaaro</h2>
+      <p style={{ fontSize: 14, color: "#888", marginBottom: 24 }}>Your trusted online print partner</p>
+
+      <div style={{ background: "#fff", borderRadius: 14, padding: 24, border: "1px solid #eee", marginBottom: 16 }}>
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: "#FF6B35", margin: "0 0 12px" }}>Our Story</h3>
+        <p style={{ fontSize: 14, color: "#555", lineHeight: 1.7, margin: "0 0 12px" }}>
+          PrintKaaro was born from a simple idea: why should getting documents printed be a hassle? We believe everyone deserves access to quality printing without leaving their home.
+        </p>
+        <p style={{ fontSize: 14, color: "#555", lineHeight: 1.7, margin: 0 }}>
+          Based in West Bengal, we offer professional B&W and color document printing, booklet creation, and binding services — all delivered to your doorstep.
+        </p>
+      </div>
+
+      <div style={{ background: "#fff", borderRadius: 14, padding: 24, border: "1px solid #eee", marginBottom: 16 }}>
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: "#FF6B35", margin: "0 0 16px" }}>Why Choose Us?</h3>
+        {[
+          { icon: "⚡", title: "Fast Turnaround", desc: "Most orders printed within 24 hours" },
+          { icon: "💰", title: "Affordable Pricing", desc: "B&W from ₹2/page, Color from ₹8/page" },
+          { icon: "🔒", title: "Secure File Handling", desc: "Your PDFs are encrypted and auto-deleted after printing" },
+          { icon: "🚚", title: "Doorstep Delivery", desc: "Free delivery on orders above ₹500" },
+          { icon: "📱", title: "Easy Payments", desc: "Pay with UPI, Google Pay, PhonePe, cards, or netbanking" },
+          { icon: "🎯", title: "Quality Guaranteed", desc: "Professional-grade printing on premium paper" },
+        ].map((item, i) => (
+          <div key={i} style={{ display: "flex", gap: 14, marginBottom: 14 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: "#FFF3ED", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>{item.icon}</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#333" }}>{item.title}</div>
+              <div style={{ fontSize: 13, color: "#888" }}>{item.desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background: "#fff", borderRadius: 14, padding: 24, border: "1px solid #eee" }}>
+        <h3 style={{ fontSize: 18, fontWeight: 700, color: "#FF6B35", margin: "0 0 12px" }}>Our Services</h3>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          {[
+            { icon: "📄", name: "B&W Printing", price: "From ₹2/page" },
+            { icon: "🎨", name: "Color Printing", price: "From ₹8/page" },
+            { icon: "📚", name: "Booklet Printing", price: "From ₹5/page" },
+            { icon: "📖", name: "Binding", price: "From ₹10" },
+          ].map((s, i) => (
+            <div key={i} style={{ padding: 14, background: "#f9f9f9", borderRadius: 10, textAlign: "center" }}>
+              <div style={{ fontSize: 24, marginBottom: 4 }}>{s.icon}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#333" }}>{s.name}</div>
+              <div style={{ fontSize: 12, color: "#FF6B35" }}>{s.price}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── CONTACT US PAGE ───
+function ContactPage() {
+  const [sent, setSent] = useState(false);
+
+  return (
+    <div style={{ maxWidth: 560, margin: "0 auto", padding: "40px 24px" }}>
+      <h2 style={{ fontSize: 28, fontWeight: 700, color: "#1a1a2e", margin: "0 0 8px", fontFamily: "'DM Serif Display', Georgia, serif" }}>Contact Us</h2>
+      <p style={{ fontSize: 14, color: "#888", marginBottom: 24 }}>We'd love to hear from you</p>
+
+      {/* Contact Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 24 }}>
+        <a href="https://wa.me/91XXXXXXXXXX?text=Hi PrintKaaro!" target="_blank" rel="noopener noreferrer"
+          style={{ padding: 20, background: "#fff", borderRadius: 14, border: "1px solid #eee", textAlign: "center", textDecoration: "none", transition: "border-color 0.2s" }}>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>💬</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#25D366" }}>WhatsApp</div>
+          <div style={{ fontSize: 12, color: "#999" }}>Chat with us</div>
+        </a>
+        <a href="tel:+91XXXXXXXXXX"
+          style={{ padding: 20, background: "#fff", borderRadius: 14, border: "1px solid #eee", textAlign: "center", textDecoration: "none" }}>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>📞</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#3b82f6" }}>Call Us</div>
+          <div style={{ fontSize: 12, color: "#999" }}>+91 XXXXXXXXXX</div>
+        </a>
+        <a href="mailto:hello@printkaaro.in"
+          style={{ padding: 20, background: "#fff", borderRadius: 14, border: "1px solid #eee", textAlign: "center", textDecoration: "none" }}>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>✉️</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#FF6B35" }}>Email</div>
+          <div style={{ fontSize: 12, color: "#999" }}>hello@printkaaro.in</div>
+        </a>
+        <div style={{ padding: 20, background: "#fff", borderRadius: 14, border: "1px solid #eee", textAlign: "center" }}>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>📍</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#333" }}>Location</div>
+          <div style={{ fontSize: 12, color: "#999" }}>Balurghat, West Bengal</div>
+        </div>
+      </div>
+
+      {/* Contact Form */}
+      <div style={{ background: "#fff", borderRadius: 14, padding: 24, border: "1px solid #eee" }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: "#1a1a2e", margin: "0 0 16px" }}>Send us a message</h3>
+        {sent ? (
+          <div style={{ textAlign: "center", padding: "20px 0" }}>
+            <div style={{ fontSize: 40, marginBottom: 8 }}>✅</div>
+            <p style={{ fontSize: 16, fontWeight: 600, color: "#16a34a", margin: "0 0 4px" }}>Message sent!</p>
+            <p style={{ fontSize: 13, color: "#888" }}>We'll get back to you within 24 hours.</p>
+          </div>
+        ) : (
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#999", display: "block", marginBottom: 4 }}>NAME</label>
+              <input placeholder="Your name" style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #e0e0e0", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#999", display: "block", marginBottom: 4 }}>PHONE OR EMAIL</label>
+              <input placeholder="How should we reach you?" style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #e0e0e0", fontSize: 14, outline: "none", boxSizing: "border-box" }} />
+            </div>
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#999", display: "block", marginBottom: 4 }}>MESSAGE</label>
+              <textarea rows={4} placeholder="How can we help you?" style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #e0e0e0", fontSize: 14, outline: "none", resize: "none", boxSizing: "border-box" }} />
+            </div>
+            <button onClick={() => setSent(true)}
+              style={{ width: "100%", padding: 14, borderRadius: 12, border: "none", background: "linear-gradient(135deg, #FF6B35, #FF8C42)", color: "#fff", fontSize: 15, fontWeight: 700, cursor: "pointer" }}>
+              Send Message
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Business Hours */}
+      <div style={{ background: "#fff", borderRadius: 14, padding: 20, border: "1px solid #eee", marginTop: 16, display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ fontSize: 28 }}>🕐</div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#333" }}>Business Hours</div>
+          <div style={{ fontSize: 13, color: "#888" }}>Mon - Sat: 9:00 AM - 8:00 PM</div>
+          <div style={{ fontSize: 13, color: "#888" }}>Sunday: 10:00 AM - 4:00 PM</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN APP ───
 export default function PrintKaro() {
   const [page, setPage] = useState("home");
@@ -660,6 +957,9 @@ export default function PrintKaro() {
       {page === "payment" && order && <PaymentPage order={order} onPay={() => setPage("status")} onBack={() => setPage("address")} />}
       {page === "status" && order && address && <OrderStatusPage order={order} address={address} setPage={setPage} />}
       {page === "orders" && <OrdersPage setPage={setPage} />}
+      {page === "account" && <AccountPage user={user} setPage={setPage} onSignOut={() => { setUser(null); setPage("home"); }} />}
+      {page === "about" && <AboutPage />}
+      {page === "contact" && <ContactPage />}
 
       {/* WhatsApp Floating Button */}
       <a href="https://wa.me/91XXXXXXXXXX?text=Hi! I want to place a print order on PrintKaaro"
