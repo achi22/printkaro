@@ -16,7 +16,7 @@ function Navbar({ user, setPage, currentPage, onSignOut }) {
       <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px" }}>
         <button onClick={() => setPage("home")} style={{ display: "flex", alignItems: "center", gap: 10, border: "none", background: "none", cursor: "pointer" }}>
           <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg, #FF6B35, #FF8C42)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 18 }}>P</div>
-          <span style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e", fontFamily: "'DM Serif Display', Georgia, serif" }}>PrintKaro</span>
+          <span style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e", fontFamily: "'DM Serif Display', Georgia, serif" }}>PrintKaaro</span>
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {[
@@ -76,7 +76,7 @@ function AuthPage({ onAuth, setPage }) {
             {mode === "signin" ? "Welcome Back" : "Create Account"}
           </h2>
           <p style={{ fontSize: 14, color: "#888", marginTop: 6 }}>
-            {mode === "signin" ? "Sign in to track your orders" : "Join PrintKaro for easy printing"}
+            {mode === "signin" ? "Sign in to track your orders" : "Join PrintKaaro for easy printing"}
           </p>
         </div>
 
@@ -592,7 +592,7 @@ function OrdersPage({ setPage }) {
 }
 
 // ─── MAIN APP ───
-export default function PrintKaro() {
+export default function PrintKaaro() {
   const [page, setPage] = useState("home");
   const [user, setUser] = useState(null);
   const [order, setOrder] = useState(null);
@@ -630,7 +630,7 @@ export default function PrintKaro() {
       {page === "status" && order && address && <OrderStatusPage order={order} address={address} setPage={setPage} />}
       {page === "orders" && <OrdersPage setPage={setPage} />}
       <footer style={{ borderTop: "1px solid #eee", padding: 24, textAlign: "center", marginTop: 40 }}>
-        <p style={{ fontSize: 13, color: "#bbb", margin: 0 }}>© 2026 PrintKaro — Professional Print & Delivery Service</p>
+        <p style={{ fontSize: 13, color: "#bbb", margin: 0 }}>© 2026 PrintKaaro — Professional Print & Delivery Service</p>
       </footer>
     </div>
   );
