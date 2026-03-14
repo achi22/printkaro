@@ -371,20 +371,26 @@ function HomePage({ onProceed }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: "#999", display: "block", marginBottom: 6 }}>PAGES {file && <span style={{ color: "#16a34a" }}>(auto-detected)</span>}</label>
-                <input type="number" min="1" value={pages} onChange={e => { const v = e.target.value; setPages(v === "" ? "" : Math.max(1, parseInt(v) || 1)); }}
-                  onBlur={() => { if (!pages || pages < 1) setPages(1); }}
-                  style={{ width: "100%", padding: "10px 14px", borderRadius: 10, border: "1.5px solid #e0e0e0", fontSize: 16, fontWeight: 600, outline: "none", boxSizing: "border-box" }} />
+                <div style={{ display: "flex", alignItems: "center", gap: 0, border: "1.5px solid #e0e0e0", borderRadius: 10, overflow: "hidden", height: 44 }}>
+                  <button onClick={() => setPages(Math.max(1, (parseInt(pages) || 1) - 1))}
+                    style={{ width: 40, height: 44, border: "none", background: pages <= 1 ? "#f5f5f5" : "#FFF3ED", color: pages <= 1 ? "#ccc" : "#FF6B35", fontSize: 18, fontWeight: 700, cursor: pages <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>−</button>
+                  <input type="number" min="1" value={pages} onChange={e => { const v = e.target.value; setPages(v === "" ? "" : Math.max(1, parseInt(v) || 1)); }}
+                    onBlur={() => { if (!pages || pages < 1) setPages(1); }}
+                    style={{ flex: 1, padding: "10px 4px", border: "none", borderLeft: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: 16, fontWeight: 600, outline: "none", textAlign: "center", boxSizing: "border-box", minWidth: 0 }} />
+                  <button onClick={() => setPages((parseInt(pages) || 1) + 1)}
+                    style={{ width: 40, height: 44, border: "none", background: "#FFF3ED", color: "#FF6B35", fontSize: 18, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>+</button>
+                </div>
               </div>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: "#999", display: "block", marginBottom: 6 }}>COPIES</label>
-                <div style={{ display: "flex", alignItems: "center", gap: 0, border: "1.5px solid #e0e0e0", borderRadius: 10, overflow: "hidden" }}>
-                  <button onClick={() => setCopies(Math.max(1, copies - 1))}
-                    style={{ width: 44, height: 44, border: "none", background: copies <= 1 ? "#f5f5f5" : "#FFF3ED", color: copies <= 1 ? "#ccc" : "#FF6B35", fontSize: 20, fontWeight: 700, cursor: copies <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>−</button>
+                <div style={{ display: "flex", alignItems: "center", gap: 0, border: "1.5px solid #e0e0e0", borderRadius: 10, overflow: "hidden", height: 44 }}>
+                  <button onClick={() => setCopies(Math.max(1, (parseInt(copies) || 1) - 1))}
+                    style={{ width: 40, height: 44, border: "none", background: copies <= 1 ? "#f5f5f5" : "#FFF3ED", color: copies <= 1 ? "#ccc" : "#FF6B35", fontSize: 18, fontWeight: 700, cursor: copies <= 1 ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>−</button>
                   <input type="number" min="1" value={copies} onChange={e => { const v = e.target.value; setCopies(v === "" ? "" : Math.max(1, parseInt(v) || 1)); }}
                     onBlur={() => { if (!copies || copies < 1) setCopies(1); }}
-                    style={{ flex: 1, padding: "10px 8px", border: "none", borderLeft: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: 16, fontWeight: 600, outline: "none", textAlign: "center", boxSizing: "border-box" }} />
-                  <button onClick={() => setCopies(copies + 1)}
-                    style={{ width: 44, height: 44, border: "none", background: "#FFF3ED", color: "#FF6B35", fontSize: 20, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>+</button>
+                    style={{ flex: 1, padding: "10px 4px", border: "none", borderLeft: "1px solid #e0e0e0", borderRight: "1px solid #e0e0e0", fontSize: 16, fontWeight: 600, outline: "none", textAlign: "center", boxSizing: "border-box", minWidth: 0 }} />
+                  <button onClick={() => setCopies((parseInt(copies) || 1) + 1)}
+                    style={{ width: 40, height: 44, border: "none", background: "#FFF3ED", color: "#FF6B35", fontSize: 18, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>+</button>
                 </div>
               </div>
             </div>
