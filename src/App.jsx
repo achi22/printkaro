@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import AdminDashboard from "./Admin.jsx";
 
 // ─── CONFIG ───
 const BINDING_OPTIONS = [
@@ -16,7 +17,7 @@ function Navbar({ user, setPage, currentPage, onSignOut }) {
       <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 24px" }}>
         <button onClick={() => setPage("home")} style={{ display: "flex", alignItems: "center", gap: 10, border: "none", background: "none", cursor: "pointer" }}>
           <div style={{ width: 38, height: 38, borderRadius: 10, background: "linear-gradient(135deg, #FF6B35, #FF8C42)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 800, fontSize: 18 }}>P</div>
-          <span style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e", fontFamily: "'DM Serif Display', Georgia, serif" }}>PrintKaaro</span>
+          <span style={{ fontSize: 22, fontWeight: 700, color: "#1a1a2e", fontFamily: "'DM Serif Display', Georgia, serif" }}>PrintKaro</span>
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           {[
@@ -76,7 +77,7 @@ function AuthPage({ onAuth, setPage }) {
             {mode === "signin" ? "Welcome Back" : "Create Account"}
           </h2>
           <p style={{ fontSize: 14, color: "#888", marginTop: 6 }}>
-            {mode === "signin" ? "Sign in to track your orders" : "Join PrintKaaro for easy printing"}
+            {mode === "signin" ? "Sign in to track your orders" : "Join PrintKaro for easy printing"}
           </p>
         </div>
 
@@ -592,7 +593,7 @@ function OrdersPage({ setPage }) {
 }
 
 // ─── MAIN APP ───
-export default function PrintKaaro() {
+export default function PrintKaro() {
   const [page, setPage] = useState("home");
   const [user, setUser] = useState(null);
   const [order, setOrder] = useState(null);
@@ -620,6 +621,12 @@ export default function PrintKaaro() {
     }
   };
 
+  // Check if URL has #admin
+  const isAdmin = typeof window !== "undefined" && window.location.hash === "#admin";
+  if (isAdmin) {
+    return <AdminDashboard />;
+  }
+
   return (
     <div style={{ minHeight: "100vh", background: "#FAFAFA", fontFamily: "'DM Sans', 'Segoe UI', sans-serif" }}>
       <Navbar user={user} setPage={setPage} currentPage={page} onSignOut={() => { setUser(null); setPage("home"); }} />
@@ -629,6 +636,14 @@ export default function PrintKaaro() {
       {page === "payment" && order && <PaymentPage order={order} onPay={() => setPage("status")} onBack={() => setPage("address")} />}
       {page === "status" && order && address && <OrderStatusPage order={order} address={address} setPage={setPage} />}
       {page === "orders" && <OrdersPage setPage={setPage} />}
+
+      {/* WhatsApp Floating Button */}
+      <a href="https://wa.me/9239226708?text=Hi! I want to place a print order on PrintKaaro"
+        target="_blank" rel="noopener noreferrer"
+        style={{ position: "fixed", bottom: 24, right: 24, width: 56, height: 56, borderRadius: "50%", background: "#25D366", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, color: "#fff", boxShadow: "0 4px 20px rgba(37,211,102,0.4)", zIndex: 99, textDecoration: "none" }}>
+        💬
+      </a>
+
       <footer style={{ borderTop: "1px solid #eee", padding: 24, textAlign: "center", marginTop: 40 }}>
         <p style={{ fontSize: 13, color: "#bbb", margin: 0 }}>© 2026 PrintKaaro — Professional Print & Delivery Service</p>
       </footer>
