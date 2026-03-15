@@ -179,7 +179,10 @@ const handlePay=async(paymentMethod)=>{try{
   let filePath="",fileSize=0;
   if(fileObj){try{const up=await api.uploadPDF(fileObj);filePath=up.filePath;fileSize=up.fileSize;}catch(e){console.log("Upload skipped:",e.message);}}
   const pm=paymentMethod||"upi";
-  await api.createOrder({fileName:order.file,filePath,fileSize,pages:order.pages,copies:order.copies,colorMode:order.colorMode,paperSize:order.paperSize,sided:order.sided,binding:order.binding,notes:"",price:order.price,deliveryAddress:address,paymentMethod:pm==="cod"?"cash":pm});
+  const created=await api.createOrder({fileName:order.file,filePath,fileSize,pages:order.pages,copies:order.copies,colorMode:order.colorMode,paperSize:order.paperSize,sided:order.sided,binding:order.binding,notes:"",price:order.price,deliveryAddress:address,paymentMethod:pm==="cod"?"cash":pm});
+  // WhatsApp notification to admin
+  const msg=encodeURIComponent(`🆕 New Order!\n📋 ${created.orderId||"Order"}\n👤 ${address.name} (${address.phone})\n📄 ${order.file} — ${order.pages}p × ${order.copies}c\n💰 ₹${created.totalPrice||order.price} (${pm==="cod"?"COD":pm})\n📍 ${address.city} - ${address.pincode}`);
+  try{fetch(`https://api.callmebot.com/whatsapp.php?phone=919239226708&text=${msg}&apikey=YOUR_API_KEY`,{mode:"no-cors"});}catch(e){}
   setPage("status");
 }catch(e){console.error("Order error:",e);alert("Order failed: "+e.message);}};
 
