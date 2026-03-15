@@ -122,7 +122,9 @@ function OrderDetail({ order, onClose, onUpdate, onCancel, onRefresh }) {
   return (
     <Modal onClose={onClose} title={`Order ${order.orderId}`} wide>
       <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-        {order.filePath && <a href={api.getAdminPdfUrl(order._id)} target="_blank" rel="noopener noreferrer" style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #3b82f6", background: "#EFF6FF", color: "#3b82f6", fontSize: 11, fontWeight: 600, textDecoration: "none" }}>📄 Download PDF</a>}
+        {order.filePath && order.filePath.split(",").filter(Boolean).map((fid, i) => 
+          <a key={i} href={`${api.API_URL}/api/orders/file/${fid}?adminpass=${localStorage.getItem("pk_admin")}`} target="_blank" rel="noopener noreferrer" style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #3b82f6", background: "#EFF6FF", color: "#3b82f6", fontSize: 11, fontWeight: 600, textDecoration: "none" }}>📄 PDF {order.filePath.includes(",") ? (i+1) : ""}</a>
+        )}
         <button onClick={() => printInvoice(order)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>🧾 Invoice</button>
         <button onClick={() => setEditing(!editing)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #ddd", background: editing ? "#FFF3ED" : "#fff", color: editing ? "#FF6B35" : "#333", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>✏️ {editing ? "Cancel" : "Edit"}</button>
         <a href={`https://wa.me/91${addr.phone || user.phone}?text=Hi ${addr.name || user.name}, your PrintKaaro order ${order.orderId} update:`} target="_blank" rel="noopener noreferrer" style={{ padding: "6px 12px", borderRadius: 6, background: "#25D366", color: "#fff", fontSize: 11, fontWeight: 600, textDecoration: "none" }}>💬 WhatsApp</a>
