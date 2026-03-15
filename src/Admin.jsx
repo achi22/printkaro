@@ -408,24 +408,11 @@ export default function AdminDashboard() {
       const newOrders = ordersData.orders || [];
       const newTotal = statsData.totalOrders || 0;
       
-      // Check for new orders
+      // Check for new orders — only if we already loaded once AND count increased
       if (silent && prevCountRef.current > 0 && newTotal > prevCountRef.current) {
         const latest = newOrders[0];
         const addr = latest?.deliveryAddress || {};
         
-        // Play sound
-        try {
-          const ctx = new (window.AudioContext || window.webkitAudioContext)();
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain); gain.connect(ctx.destination);
-          osc.frequency.value = 800; osc.type = "sine";
-          gain.gain.value = 0.3;
-          osc.start(); osc.stop(ctx.currentTime + 0.15);
-          setTimeout(() => { const o2 = ctx.createOscillator(); const g2 = ctx.createGain(); o2.connect(g2); g2.connect(ctx.destination); o2.frequency.value = 1000; o2.type = "sine"; g2.gain.value = 0.3; o2.start(); o2.stop(ctx.currentTime + 0.2); }, 200);
-        } catch(e) {}
-        
-        // Browser notification
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("New PrintKaaro Order!", {
             body: `${addr.name || "Customer"} ordered ${latest?.fileName || "document"} — ₹${latest?.totalPrice || 0}`,
@@ -433,7 +420,6 @@ export default function AdminDashboard() {
           });
         }
         
-        // Update title
         document.title = `(NEW) PrintKaaro Admin`;
         setTimeout(() => { document.title = "PrintKaaro Admin"; }, 15000);
       }
@@ -446,10 +432,17 @@ export default function AdminDashboard() {
   };
 
   // Auto-refresh every 20 seconds
+  const initialLoadDone = useRef(false);
+  
   useEffect(() => { 
     if (adminAuth) {
       fetchData();
-      const interval = setInterval(() => fetchData(true), 20000);
+      initialLoadDone.current = false;
+      // Mark initial load done after first fetch
+      setTimeout(() => { initialLoadDone.current = true; }, 3000);
+      const interval = setInterval(() => {
+        if (initialLoadDone.current) fetchData(true);
+      }, 20000);
       return () => clearInterval(interval);
     }
   }, [adminAuth, filter]);
