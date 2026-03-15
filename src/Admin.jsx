@@ -95,8 +95,88 @@ function StatusBreakdown({ stats }) {
 
 function printInvoice(order) {
   const addr = order.deliveryAddress || {};
-  const w = window.open("", "_blank", "width=400,height=600");
-  w.document.write(`<!DOCTYPE html><html><head><title>Invoice ${order.orderId}</title><style>body{font-family:Arial;padding:20px;max-width:360px;margin:0 auto;font-size:13px;color:#333}h2{text-align:center;color:#FF6B35;margin:0 0 4px}.sub{text-align:center;color:#999;font-size:11px;margin:0 0 16px}.line{border-top:1px dashed #ddd;margin:10px 0}.row{display:flex;justify-content:space-between;margin:3px 0}.total{font-size:18px;font-weight:800;color:#FF6B35}.footer{text-align:center;color:#bbb;font-size:10px;margin-top:16px}</style></head><body><h2>PrintKaaro</h2><p class="sub">printkaaro.in</p><div class="line"></div><div class="row"><span>Order:</span><strong>${order.orderId}</strong></div><div class="row"><span>Date:</span><span>${new Date(order.createdAt).toLocaleDateString("en-IN")}</span></div><div class="row"><span>Customer:</span><span>${addr.name || "N/A"}</span></div><div class="row"><span>Phone:</span><span>${addr.phone || "N/A"}</span></div><div class="line"></div><div class="row"><span>File:</span><span>${order.fileName}</span></div><div class="row"><span>Pages:</span><span>${order.pages} x ${order.copies}c</span></div><div class="row"><span>Type:</span><span>${order.colorMode === "bw" ? "B&W" : "Color"} | ${order.paperSize} | ${order.sided}</span></div><div class="row"><span>Binding:</span><span>${order.binding}</span></div><div class="line"></div><div class="row"><span>Subtotal:</span><span>₹${order.price}</span></div><div class="row"><span>Delivery:</span><span>₹${order.deliveryCharge || 0}</span></div><div class="line"></div><div class="row"><span class="total">Total:</span><span class="total">₹${order.totalPrice}</span></div><div class="row"><span>Payment:</span><span>${order.paymentMethod} | ${order.paymentStatus}</span></div><div class="line"></div><p>${addr.address || ""}, ${addr.city || ""} - ${addr.pincode || ""}</p><div class="footer"><p>Thank you for choosing PrintKaaro!</p></div><script>window.onload=()=>window.print()</script></body></html>`);
+  // Parse per-file details from notes (stored as JSON array)
+  let fileDetails = [];
+  try { fileDetails = JSON.parse(order.notes || "[]"); } catch (e) {}
+  
+  const calcFilePrice = (f) => {
+    const ppp = f.colorMode === "bw" ? 1 : 2;
+    const sm = f.sided === "double" ? 0.7 : 1;
+    const bindPrice = {"No Binding":0,"Spiral":25,"Staple":10,"Perfect Bind":60,"Hardcover":150}[f.binding] || 0;
+    return Math.ceil(ppp * sm * (f.pages || 1) * (f.copies || 1) + bindPrice * (f.copies || 1));
+  };
+
+  let fileRows = "";
+  if (fileDetails.length > 0) {
+    fileRows = fileDetails.map((f, i) => {
+      const price = calcFilePrice(f);
+      return `
+        <div style="background:#f9f9f9;border-radius:6px;padding:10px;margin:6px 0;">
+          <div class="row"><strong>📄 File ${i + 1}:</strong><span>${f.name}</span></div>
+          <div class="row"><span style="color:#888">Pages × Copies:</span><span>${f.pages} × ${f.copies}</span></div>
+          <div class="row"><span style="color:#888">Print:</span><span>${f.colorMode === "bw" ? "B&W ₹1/pg" : "Color ₹2/pg"} | ${f.paperSize} | ${f.sided === "double" ? "Both Sides" : "Single Side"}</span></div>
+          <div class="row"><span style="color:#888">Binding:</span><span>${f.binding}</span></div>
+          <div class="row" style="margin-top:4px;padding-top:4px;border-top:1px dotted #ddd"><strong>File ${i + 1} Cost:</strong><strong style="color:#FF6B35">₹${price}</strong></div>
+        </div>`;
+    }).join("");
+  } else {
+    // Single file / old order format
+    fileRows = `
+      <div style="background:#f9f9f9;border-radius:6px;padding:10px;margin:6px 0;">
+        <div class="row"><strong>📄 File:</strong><span>${order.fileName}</span></div>
+        <div class="row"><span style="color:#888">Pages × Copies:</span><span>${order.pages} × ${order.copies}</span></div>
+        <div class="row"><span style="color:#888">Print:</span><span>${order.colorMode === "bw" ? "B&W ₹1/pg" : "Color ₹2/pg"} | ${order.paperSize} | ${order.sided === "double" ? "Both Sides" : "Single Side"}</span></div>
+        <div class="row"><span style="color:#888">Binding:</span><span>${order.binding}</span></div>
+        <div class="row" style="margin-top:4px;padding-top:4px;border-top:1px dotted #ddd"><strong>Cost:</strong><strong style="color:#FF6B35">₹${order.price}</strong></div>
+      </div>`;
+  }
+
+  const w = window.open("", "_blank", "width=420,height=700");
+  w.document.write(`<!DOCTYPE html><html><head><title>Invoice ${order.orderId}</title>
+<style>
+body{font-family:Arial,sans-serif;padding:20px;max-width:380px;margin:0 auto;font-size:12px;color:#333}
+h2{text-align:center;color:#FF6B35;margin:0 0 2px;font-size:20px}
+.sub{text-align:center;color:#999;font-size:10px;margin:0 0 14px}
+.line{border-top:1.5px dashed #ddd;margin:10px 0}
+.row{display:flex;justify-content:space-between;margin:3px 0;font-size:12px}
+.total{font-size:18px;font-weight:800;color:#FF6B35}
+.section-title{font-size:11px;font-weight:700;color:#888;margin:10px 0 4px;text-transform:uppercase}
+.footer{text-align:center;color:#bbb;font-size:10px;margin-top:16px}
+</style></head><body>
+<h2>🖨️ PrintKaaro</h2>
+<p class="sub">printkaaro.in | +91 9239226708</p>
+<div class="line"></div>
+
+<div class="section-title">Order Info</div>
+<div class="row"><span>Order ID:</span><strong style="color:#FF6B35">${order.orderId}</strong></div>
+<div class="row"><span>Date:</span><span>${new Date(order.createdAt).toLocaleDateString("en-IN", {day:"numeric",month:"short",year:"numeric"})}</span></div>
+<div class="row"><span>Status:</span><span>${order.status}</span></div>
+<div class="line"></div>
+
+<div class="section-title">Customer</div>
+<div class="row"><span>Name:</span><span>${addr.name || "N/A"}</span></div>
+<div class="row"><span>Phone:</span><span>${addr.phone || "N/A"}</span></div>
+<div class="row"><span>Address:</span><span style="text-align:right;max-width:200px">${addr.address || ""}, ${addr.city || ""} - ${addr.pincode || ""}</span></div>
+<div class="line"></div>
+
+<div class="section-title">Files & Print Details (${fileDetails.length || 1} file${fileDetails.length > 1 ? "s" : ""})</div>
+${fileRows}
+<div class="line"></div>
+
+<div class="section-title">Billing</div>
+<div class="row"><span>Subtotal (${fileDetails.length || 1} file${fileDetails.length > 1 ? "s" : ""}):</span><span>₹${order.price}</span></div>
+<div class="row"><span>Delivery:</span><span style="color:${order.deliveryCharge === 0 ? "#16a34a" : "#333"}">${order.deliveryCharge === 0 ? "FREE" : "₹" + order.deliveryCharge}</span></div>
+<div class="line"></div>
+<div class="row"><span class="total">Total:</span><span class="total">₹${order.totalPrice}</span></div>
+<div class="row"><span>Payment:</span><span>${order.paymentMethod === "cash" ? "Cash on Delivery" : order.paymentMethod} | ${order.paymentStatus}</span></div>
+<div class="line"></div>
+
+<div class="footer">
+<p>Thank you for choosing PrintKaaro! 🧡</p>
+<p style="font-size:9px">printkaaro.in | WhatsApp: +91 9239226708</p>
+</div>
+<script>window.onload=()=>window.print()</script>
+</body></html>`);
   w.document.close();
 }
 
