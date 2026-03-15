@@ -389,20 +389,59 @@ export default function AdminDashboard() {
   const [passError, setPassError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (silent) => {
+    if (!silent) setLoading(true);
     try {
       const [ordersData, statsData] = await Promise.all([
         api.getAdminOrders({ status: filter === "all" ? "" : filter, search }),
         api.getAdminStats()
       ]);
-      setOrders(ordersData.orders || []);
+      const newOrders = ordersData.orders || [];
+      
+      // Check for new orders and send browser notification
+      if (silent && orders.length > 0 && newOrders.length > orders.length) {
+        const newCount = newOrders.length - orders.length;
+        const latest = newOrders[0];
+        const addr = latest.deliveryAddress || {};
+        
+        // Play notification sound
+        try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2LkpKNg3ZxeYONk5ORiH11c3yGj5SSkIR6dXV+h4+TkpCFe3Z0fIaNk5KQhXt2dHyGjZOSkIV7dnR8ho2TkpCFe3Z0fIaNk5KQhXt2dA==").play(); } catch(e) {}
+        
+        // Browser notification
+        if (Notification.permission === "granted") {
+          new Notification("🆕 New PrintKaaro Order!", {
+            body: `${addr.name || "Customer"} — ₹${latest.totalPrice} — ${latest.fileName}`,
+            icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23FF6B35'/><text x='50' y='70' text-anchor='middle' font-size='60' font-weight='800' fill='white'>P</text></svg>",
+            tag: "new-order",
+          });
+        }
+        
+        // Update page title
+        document.title = `(${newCount} new) PrintKaaro Admin`;
+        setTimeout(() => { document.title = "PrintKaaro Admin"; }, 10000);
+      }
+      
+      setOrders(newOrders);
       setStats(statsData);
     } catch (e) { console.error("Fetch error:", e); }
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
-  useEffect(() => { if (adminAuth) fetchData(); }, [adminAuth, filter]);
+  // Auto-refresh every 30 seconds
+  useEffect(() => { 
+    if (adminAuth) {
+      fetchData();
+      const interval = setInterval(() => fetchData(true), 30000);
+      return () => clearInterval(interval);
+    }
+  }, [adminAuth, filter]);
+
+  // Request notification permission on login
+  useEffect(() => {
+    if (adminAuth && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, [adminAuth]);
 
   const handleLogin = async () => {
     try {
