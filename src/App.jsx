@@ -246,22 +246,54 @@ const proceed=(d,fileOrFiles)=>{
 const out=()=>{api.signout();setUser(null);setPage("home");};
 const authAndProceed=u=>{setUser(u);if(pend){setOrder(pend);setPend(null);setPage("address");}else setPage("home");};
 
-const handlePay=async(paymentMethod)=>{try{
-  // Upload all PDF files
-  let fileNames=[],filePaths=[];
-  if(fileObj&&fileObj.length>0){
-    for(const f of fileObj){
-      try{const up=await api.uploadPDF(f);filePaths.push(up.filePath);fileNames.push(f.name);}catch(e){console.log("Upload skipped:",e.message);fileNames.push(f.name);}
+const[orderLoading,setOrderLoading]=useState(false);
+const[orderMsg,setOrderMsg]=useState("");
+
+const handlePay=async(paymentMethod)=>{
+  setOrderLoading(true);setOrderMsg("Connecting to server...");
+  
+  // Retry function - tries up to 3 times with delay
+  const tryOrder=async(attempt)=>{
+    try{
+      // Upload all PDF files
+      let filePaths=[];
+      if(fileObj&&fileObj.length>0){
+        setOrderMsg("Uploading your files...");
+        for(const f of fileObj){
+          try{const up=await api.uploadPDF(f);filePaths.push(up.filePath);}catch(e){console.log("Upload skipped:",e.message);}
+        }
+      }
+      setOrderMsg("Creating your order...");
+      const pm=paymentMethod||"upi";
+      const created=await api.createOrder({fileName:order.file,filePath:filePaths.join(","),fileSize:0,pages:order.pages,copies:order.copies,colorMode:order.colorMode,paperSize:order.paperSize,sided:order.sided,binding:order.binding,notes:order.files?JSON.stringify(order.files):"",price:order.price,deliveryAddress:address,paymentMethod:pm==="cod"?"cash":pm});
+      const msg=encodeURIComponent(`🆕 New Order!\n📋 ${created.orderId||"Order"}\n👤 ${address.name} (${address.phone})\n📄 ${order.file}\n💰 ₹${created.totalPrice||order.price} (${pm==="cod"?"COD":pm})\n📍 ${address.city} - ${address.pincode}`);
+      try{fetch(`https://api.callmebot.com/whatsapp.php?phone=918104780153&text=${msg}&apikey=YOUR_API_KEY`,{mode:"no-cors"});}catch(e){}
+      setOrderLoading(false);setOrderMsg("");
+      setPage("status");
+    }catch(e){
+      if(attempt<3&&(e.message.includes("fetch")||e.message.includes("Network")||e.message.includes("Failed"))){
+        setOrderMsg(`Server is waking up... Retrying (${attempt}/3)`);
+        await new Promise(r=>setTimeout(r,5000));
+        return tryOrder(attempt+1);
+      }
+      setOrderLoading(false);setOrderMsg("");
+      alert("Order failed: "+e.message+"\n\nPlease try again.");
     }
-  }
-  const pm=paymentMethod||"upi";
-  const created=await api.createOrder({fileName:order.file,filePath:filePaths.join(","),fileSize:0,pages:order.pages,copies:order.copies,colorMode:order.colorMode,paperSize:order.paperSize,sided:order.sided,binding:order.binding,notes:order.files?JSON.stringify(order.files):"",price:order.price,deliveryAddress:address,paymentMethod:pm==="cod"?"cash":pm});
-  const msg=encodeURIComponent(`🆕 New Order!\n📋 ${created.orderId||"Order"}\n👤 ${address.name} (${address.phone})\n📄 ${order.file}\n💰 ₹${created.totalPrice||order.price} (${pm==="cod"?"COD":pm})\n📍 ${address.city} - ${address.pincode}`);
-  try{fetch(`https://api.callmebot.com/whatsapp.php?phone=918104780153&text=${msg}&apikey=YOUR_API_KEY`,{mode:"no-cors"});}catch(e){}
-  setPage("status");
-}catch(e){console.error("Order error:",e);alert("Order failed: "+e.message);}};
+  };
+  
+  // Wake the server first
+  try{await fetch(api.API_URL+"/",{mode:"no-cors"});}catch(e){}
+  await new Promise(r=>setTimeout(r,1000));
+  tryOrder(1);
+};
 
 return<div style={{minHeight:"100vh",background:"#FAFAFA",fontFamily:"'DM Sans','Segoe UI',sans-serif",overflowX:"hidden",maxWidth:"100vw"}}>
+{orderLoading&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
+<div style={{width:56,height:56,borderRadius:"50%",border:"4px solid #FF6B3530",borderTopColor:"#FF6B35",animation:"spin 1s linear infinite"}}/>
+<style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+<p style={{color:"#fff",fontSize:16,fontWeight:600,textAlign:"center",maxWidth:280}}>{orderMsg}</p>
+<p style={{color:"#bbb",fontSize:12,textAlign:"center"}}>Please don't close this page</p>
+</div>}
 <Nav user={user} setPage={setPage} page={page} onSignOut={out}/>
 {page==="home"&&<HomePage onProceed={proceed}/>}
 {page==="signin"&&<AuthPage onAuth={authAndProceed}/>}
