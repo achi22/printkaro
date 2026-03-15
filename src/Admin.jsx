@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as api from "./api.js";
 
 const STATUS_FLOW = ["confirmed", "printing", "ready", "shipped", "delivered"];
@@ -389,6 +389,15 @@ export default function AdminDashboard() {
   const [passError, setPassError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [notifPerm, setNotifPerm] = useState("Notification" in window ? Notification.permission : "denied");
+  const prevCountRef = useRef(0);
+
+  const requestNotif = () => {
+    if ("Notification" in window) {
+      Notification.requestPermission().then(p => setNotifPerm(p));
+    }
+  };
+
   const fetchData = async (silent) => {
     if (!silent) setLoading(true);
     try {
@@ -397,51 +406,53 @@ export default function AdminDashboard() {
         api.getAdminStats()
       ]);
       const newOrders = ordersData.orders || [];
+      const newTotal = statsData.totalOrders || 0;
       
-      // Check for new orders and send browser notification
-      if (silent && orders.length > 0 && newOrders.length > orders.length) {
-        const newCount = newOrders.length - orders.length;
+      // Check for new orders
+      if (silent && prevCountRef.current > 0 && newTotal > prevCountRef.current) {
         const latest = newOrders[0];
-        const addr = latest.deliveryAddress || {};
+        const addr = latest?.deliveryAddress || {};
         
-        // Play notification sound
-        try { new Audio("data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdH2LkpKNg3ZxeYONk5ORiH11c3yGj5SSkIR6dXV+h4+TkpCFe3Z0fIaNk5KQhXt2dHyGjZOSkIV7dnR8ho2TkpCFe3Z0fIaNk5KQhXt2dA==").play(); } catch(e) {}
+        // Play sound
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.frequency.value = 800; osc.type = "sine";
+          gain.gain.value = 0.3;
+          osc.start(); osc.stop(ctx.currentTime + 0.15);
+          setTimeout(() => { const o2 = ctx.createOscillator(); const g2 = ctx.createGain(); o2.connect(g2); g2.connect(ctx.destination); o2.frequency.value = 1000; o2.type = "sine"; g2.gain.value = 0.3; o2.start(); o2.stop(ctx.currentTime + 0.2); }, 200);
+        } catch(e) {}
         
         // Browser notification
-        if (Notification.permission === "granted") {
-          new Notification("🆕 New PrintKaaro Order!", {
-            body: `${addr.name || "Customer"} — ₹${latest.totalPrice} — ${latest.fileName}`,
-            icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23FF6B35'/><text x='50' y='70' text-anchor='middle' font-size='60' font-weight='800' fill='white'>P</text></svg>",
-            tag: "new-order",
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("New PrintKaaro Order!", {
+            body: `${addr.name || "Customer"} ordered ${latest?.fileName || "document"} — ₹${latest?.totalPrice || 0}`,
+            tag: "pk-order-" + newTotal,
           });
         }
         
-        // Update page title
-        document.title = `(${newCount} new) PrintKaaro Admin`;
-        setTimeout(() => { document.title = "PrintKaaro Admin"; }, 10000);
+        // Update title
+        document.title = `(NEW) PrintKaaro Admin`;
+        setTimeout(() => { document.title = "PrintKaaro Admin"; }, 15000);
       }
       
+      prevCountRef.current = newTotal;
       setOrders(newOrders);
       setStats(statsData);
     } catch (e) { console.error("Fetch error:", e); }
     if (!silent) setLoading(false);
   };
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 20 seconds
   useEffect(() => { 
     if (adminAuth) {
       fetchData();
-      const interval = setInterval(() => fetchData(true), 30000);
+      const interval = setInterval(() => fetchData(true), 20000);
       return () => clearInterval(interval);
     }
   }, [adminAuth, filter]);
-
-  // Request notification permission on login
-  useEffect(() => {
-    if (adminAuth && "Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, [adminAuth]);
 
   const handleLogin = async () => {
     try {
@@ -481,6 +492,8 @@ export default function AdminDashboard() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={fetchData} style={{ fontSize: 11, color: "#888", border: "1px solid #333", background: "none", padding: "4px 10px", borderRadius: 5, cursor: "pointer" }}>🔄 Refresh</button>
+          {notifPerm !== "granted" && <button onClick={requestNotif} style={{ fontSize: 11, color: "#22c55e", border: "1px solid #22c55e30", background: "none", padding: "4px 10px", borderRadius: 5, cursor: "pointer" }}>🔔 Enable Alerts</button>}
+          {notifPerm === "granted" && <span style={{ fontSize: 10, color: "#22c55e", padding: "4px 8px" }}>🔔 Live</span>}
           <button onClick={async()=>{if(confirm("Delete all delivered/cancelled orders older than 7 days?")){try{const r=await api.cleanupOldOrders();alert(r.message);fetchData();}catch(e){alert(e.message);}}}} style={{ fontSize: 11, color: "#f59e0b", border: "1px solid #f59e0b30", background: "none", padding: "4px 10px", borderRadius: 5, cursor: "pointer" }}>🧹 Cleanup</button>
           <a href="/" style={{ fontSize: 11, color: "#888", textDecoration: "none" }}>← Store</a>
           <button onClick={() => setAdminAuth(false)} style={{ fontSize: 10, color: "#ef4444", border: "1px solid #ef444430", background: "none", padding: "4px 10px", borderRadius: 5, cursor: "pointer" }}>Logout</button>
