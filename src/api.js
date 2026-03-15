@@ -97,22 +97,29 @@ export async function getOrder(id) {
 }
 
 // ── ADMIN ──
+let adminPassword = null;
+
 export async function adminLogin(password) {
   const data = await api("/api/admin/login", {
     method: "POST",
     body: JSON.stringify({ password }),
   });
+  adminPassword = password; // Store for subsequent calls
   return data;
 }
 
+function adminHeaders() {
+  return adminPassword ? { "x-admin-password": adminPassword } : {};
+}
+
 export async function getAdminStats() {
-  const data = await api("/api/admin/stats");
+  const data = await api("/api/admin/stats", { headers: adminHeaders() });
   return data;
 }
 
 export async function getAdminOrders(filters = {}) {
   const params = new URLSearchParams(filters).toString();
-  const data = await api(`/api/admin/orders?${params}`);
+  const data = await api(`/api/admin/orders?${params}`, { headers: adminHeaders() });
   return data;
 }
 
@@ -120,6 +127,7 @@ export async function updateOrderStatus(id, status, note) {
   const data = await api(`/api/admin/orders/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status, note }),
+    headers: adminHeaders(),
   });
   return data.order;
 }
@@ -128,12 +136,13 @@ export async function updateOrder(id, updates) {
   const data = await api(`/api/admin/orders/${id}`, {
     method: "PATCH",
     body: JSON.stringify(updates),
+    headers: adminHeaders(),
   });
   return data.order;
 }
 
 export async function getCustomers() {
-  const data = await api("/api/admin/customers");
+  const data = await api("/api/admin/customers", { headers: adminHeaders() });
   return data.customers;
 }
 
@@ -141,6 +150,7 @@ export async function addManualOrder(orderData) {
   const data = await api("/api/admin/orders/manual", {
     method: "POST",
     body: JSON.stringify(orderData),
+    headers: adminHeaders(),
   });
   return data.order;
 }
