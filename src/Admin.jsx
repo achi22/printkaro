@@ -225,7 +225,7 @@ function CustomerModal({ onClose }) {
 function AddOrderModal({ onClose, onRefresh }) {
   const [o, setO] = useState({ customer: "", phone: "", file: "walk-in.pdf", pages: 1, copies: 1, colorMode: "bw", paperSize: "A4", sided: "single", binding: "No Binding", address: "Walk-in pickup", price: 0, payment: "cash", notes: "" });
   const [saving, setSaving] = useState(false);
-  const ppp = o.colorMode === "bw" ? 2 : 8;
+  const ppp = o.colorMode === "bw" ? 1 : 2;
   const autoPrice = Math.ceil(ppp * (o.sided === "double" ? 0.7 : 1) * o.pages * o.copies);
 
   const submit = async () => {
@@ -247,7 +247,7 @@ function AddOrderModal({ onClose, onRefresh }) {
         <div><label style={lbl}>FILE</label><input value={o.file} onChange={e => setO({ ...o, file: e.target.value })} style={inp} /></div>
         <div><label style={lbl}>PAGES</label><input type="number" min="1" value={o.pages} onChange={e => setO({ ...o, pages: Math.max(1, +e.target.value) })} style={inp} /></div>
         <div><label style={lbl}>COPIES</label><input type="number" min="1" value={o.copies} onChange={e => setO({ ...o, copies: Math.max(1, +e.target.value) })} style={inp} /></div>
-        <div><label style={lbl}>TYPE</label><select value={o.colorMode} onChange={e => setO({ ...o, colorMode: e.target.value })} style={inp}><option value="bw">B&W ₹2/pg</option><option value="color">Color ₹8/pg</option></select></div>
+        <div><label style={lbl}>TYPE</label><select value={o.colorMode} onChange={e => setO({ ...o, colorMode: e.target.value })} style={inp}><option value="bw">B&W ₹1/pg</option><option value="color">Color ₹2/pg</option></select></div>
         <div><label style={lbl}>PAYMENT</label><select value={o.payment} onChange={e => setO({ ...o, payment: e.target.value })} style={inp}><option value="cash">Cash</option><option value="upi">UPI</option></select></div>
         <div><label style={lbl}>PRICE ₹ <span style={{ color: "#bbb" }}>Auto: ₹{autoPrice}</span></label><input type="number" value={o.price || ""} onChange={e => setO({ ...o, price: +e.target.value })} style={inp} placeholder={`${autoPrice}`} /></div>
         <div style={{ gridColumn: "1/-1" }}><label style={lbl}>ADDRESS</label><input value={o.address} onChange={e => setO({ ...o, address: e.target.value })} style={inp} /></div>
