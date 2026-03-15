@@ -1,10 +1,10 @@
 const API_URL = "https://printkaaro-api.onrender.com";
 let authToken = localStorage.getItem("pk_token") || null;
-let adminPassword = null;
+let adminPassword = localStorage.getItem("pk_admin") || null;
 
 function setToken(t) { authToken = t; if (t) localStorage.setItem("pk_token", t); else localStorage.removeItem("pk_token"); }
 export function isLoggedIn() { return !!authToken; }
-export function signout() { setToken(null); adminPassword = null; }
+export function signout() { setToken(null); adminPassword = null; localStorage.removeItem("pk_admin"); }
 export { API_URL };
 
 async function api(endpoint, options = {}) {
@@ -54,7 +54,7 @@ export function saveAddress(addr) {
 
 // ── ADMIN ──
 function ah() { return adminPassword ? { "x-admin-password": adminPassword } : {}; }
-export async function adminLogin(pw) { const d = await api("/api/admin/login", { method: "POST", body: JSON.stringify({ password: pw }) }); adminPassword = pw; return d; }
+export async function adminLogin(pw) { const d = await api("/api/admin/login", { method: "POST", body: JSON.stringify({ password: pw }) }); adminPassword = pw; localStorage.setItem("pk_admin", pw); return d; }
 export async function getAdminStats() { return api("/api/admin/stats", { headers: ah() }); }
 export async function getAdminOrders(f = {}) { const p = new URLSearchParams(f).toString(); return api(`/api/admin/orders?${p}`, { headers: ah() }); }
 export async function updateOrderStatus(id, status, note) { return (await api(`/api/admin/orders/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }), headers: ah() })).order; }
