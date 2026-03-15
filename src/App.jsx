@@ -19,48 +19,64 @@ function Nav({user,setPage,page,onSignOut}){const[open,setOpen]=useState(false);
 
 function AuthPage({onAuth}){const[mode,setMode]=useState("signin");const[name,setName]=useState("");const[email,setEmail]=useState("");const[phone,setPhone]=useState("");const[pw,setPw]=useState("");const[err,setErr]=useState("");const[loading,setLoading]=useState(false);const go=async()=>{setErr("");if(mode==="signup"&&!name.trim())return setErr("Enter name");if(phone.length<10)return setErr("Valid phone required");if(pw.length<4)return setErr("Min 4 char password");setLoading(true);setErr("Connecting... (first time may take 30 sec)");try{let user;if(mode==="signup"){user=await api.signup(name.trim(),phone.trim(),email.trim(),pw);}else{user=await api.signin(phone.trim(),pw);}setErr("");onAuth(user);}catch(e){const m=e.message||"";setErr(m.includes("fetch")||m.includes("Network")?"Server waking up. Try again in 30s.":m);}finally{setLoading(false);}};const I={width:"100%",padding:"10px 12px",borderRadius:8,border:"1.5px solid #ddd",fontSize:16,outline:"none",boxSizing:"border-box"};return<div style={{minHeight:"80vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"linear-gradient(135deg,#FFF9F5,#FFF0E8)"}}><div style={{width:"100%",maxWidth:380,background:"#fff",borderRadius:16,padding:"28px 20px",boxShadow:"0 12px 40px rgba(255,107,53,.06)"}}><div style={{textAlign:"center",marginBottom:20}}><div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,#FF6B35,#FF8C42)",display:"inline-flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:18,fontWeight:800,marginBottom:10}}>P</div><h2 style={{fontSize:20,fontWeight:700,color:"#1a1a2e",margin:0}}>{mode==="signin"?"Welcome Back":"Create Account"}</h2><p style={{fontSize:12,color:"#888",marginTop:4}}>{mode==="signin"?"Sign in to track orders":"Join PrintKaaro"}</p></div>{mode==="signup"&&<><label style={{fontSize:10,fontWeight:600,color:"#999"}}>NAME</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" style={{...I,marginBottom:10,marginTop:3}}/></>}<label style={{fontSize:10,fontWeight:600,color:"#999"}}>PHONE</label><div style={{display:"flex",border:"1.5px solid #ddd",borderRadius:8,overflow:"hidden",marginBottom:10,marginTop:3}}><span style={{padding:"10px 8px",background:"#f8f8f8",fontSize:12,color:"#666",borderRight:"1px solid #ddd",flexShrink:0}}>+91</span><input value={phone} onChange={e=>setPhone(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="9876543210" style={{flex:1,padding:"10px",border:"none",fontSize:16,outline:"none",minWidth:0}}/></div>{mode==="signup"&&<><label style={{fontSize:10,fontWeight:600,color:"#999"}}>EMAIL (optional)</label><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="email@example.com" style={{...I,marginBottom:10,marginTop:3}}/></>}<label style={{fontSize:10,fontWeight:600,color:"#999"}}>PASSWORD</label><input value={pw} onChange={e=>setPw(e.target.value)} type="password" placeholder="Password" onKeyDown={e=>e.key==="Enter"&&go()} style={{...I,marginBottom:14,marginTop:3}}/>{err&&<p style={{color:loading?"#FF6B35":"#e53e3e",fontSize:11,textAlign:"center",marginBottom:8}}>{err}</p>}<button onClick={go} disabled={loading} style={{width:"100%",padding:12,borderRadius:10,border:"none",background:"linear-gradient(135deg,#FF6B35,#FF8C42)",color:"#fff",fontSize:14,fontWeight:700,cursor:loading?"wait":"pointer",opacity:loading?.7:1}}>{loading?"Connecting...":mode==="signin"?"Sign In":"Create Account"}</button><p style={{textAlign:"center",marginTop:14,fontSize:12,color:"#888"}}>{mode==="signin"?"No account? ":"Have one? "}<button onClick={()=>{setMode(mode==="signin"?"signup":"signin");setErr("");}} style={{color:"#FF6B35",fontWeight:600,border:"none",background:"none",cursor:"pointer",fontSize:12}}>{mode==="signin"?"Sign Up":"Sign In"}</button></p></div></div>;}
 
-function HomePage({onProceed}){const[file,setFile]=useState(null);const[pages,setPages]=useState(1);const[copies,setCopies]=useState(1);const[clr,setClr]=useState("bw");const[paper,setPaper]=useState("A4");const[sided,setSided]=useState("single");const[bind,setBind]=useState("none");const[drag,setDrag]=useState(false);const ref=useRef();const ppp=clr==="bw"?1:clr==="color"?2:2;const sm=sided==="double"?0.7:1;const bo=BIND.find(b=>b.id===bind);const pg=parseInt(pages)||1;const cp=parseInt(copies)||1;const sub=Math.ceil(ppp*sm*pg*cp+(bo?.price||0)*cp);const del=sub>=499?0:40;const handleFile=f=>{if(f&&f.type==="application/pdf"){setFile(f);const r=new FileReader();r.onload=e=>{const s=new TextDecoder("latin1").decode(new Uint8Array(e.target.result));const m=s.match(/\/Type\s*\/Page[^s]/g);setPages(Math.max(1,m?m.length:Math.ceil(f.size/30000)||1));};r.readAsArrayBuffer(f);}};
+function HomePage({onProceed}){
+const[files,setFiles]=useState([]);// [{file,pages,copies,clr,paper,sided,bind}]
+const[drag,setDrag]=useState(false);
+const ref=useRef();
+
+const countPages=(f,cb)=>{const r=new FileReader();r.onload=e=>{const s=new TextDecoder("latin1").decode(new Uint8Array(e.target.result));const m=s.match(/\/Type\s*\/Page[^s]/g);cb(Math.max(1,m?m.length:Math.ceil(f.size/30000)||1));};r.readAsArrayBuffer(f);};
+const addFiles=(fileList)=>{Array.from(fileList).filter(f=>f.type==="application/pdf").forEach(f=>{countPages(f,pg=>{setFiles(prev=>[...prev,{file:f,pages:pg,copies:1,clr:"bw",paper:"A4",sided:"single",bind:"none"}]);});});};
+const updateFile=(idx,key,val)=>setFiles(prev=>prev.map((f,i)=>i===idx?{...f,[key]:val}:f));
+const removeFile=(idx)=>setFiles(prev=>prev.filter((_,i)=>i!==idx));
+
+const calcPrice=(f)=>{const ppp=f.clr==="bw"?1:2;const sm=f.sided==="double"?0.7:1;const bo=BIND.find(b=>b.id===f.bind);const pg=parseInt(f.pages)||1;const cp=parseInt(f.copies)||1;return Math.ceil(ppp*sm*pg*cp+(bo?.price||0)*cp);};
+const totalPrice=files.reduce((s,f)=>s+calcPrice(f),0);
+const del=totalPrice>=499?0:40;
+
 return<div style={{background:"linear-gradient(180deg,#FFF9F5 0%,#FFF 40%)",minHeight:"80vh"}}>
 <div style={{textAlign:"center",padding:"28px 16px 10px"}}>
 <div style={{display:"inline-block",padding:"4px 12px",borderRadius:14,fontSize:10,fontWeight:600,background:"#FFF3ED",color:"#FF6B35",marginBottom:8}}>UPLOAD → CONFIGURE → PAY → DELIVERED</div>
 <h1 style={{fontSize:"clamp(22px,5.5vw,36px)",fontWeight:700,color:"#1a1a2e",margin:"0 0 6px",lineHeight:1.2,fontFamily:"'DM Serif Display',Georgia,serif"}}>Get Your Documents<br/><span style={{background:"linear-gradient(135deg,#FF6B35,#FF8C42)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Printed & Delivered</span></h1>
-<p style={{fontSize:"clamp(11px,2.8vw,14px)",color:"#888",maxWidth:380,margin:"0 auto"}}>Upload PDF, choose options, pay online. Delivered to your doorstep.</p>
+<p style={{fontSize:"clamp(11px,2.8vw,14px)",color:"#888",maxWidth:380,margin:"0 auto"}}>Upload PDFs, choose options, pay online. Delivered to your doorstep.</p>
 </div>
 <div style={{maxWidth:560,margin:"0 auto",padding:"0 14px 36px"}}>
-<div onClick={()=>ref.current?.click()} onDragOver={e=>{e.preventDefault();setDrag(true);}} onDragLeave={()=>setDrag(false)} onDrop={e=>{e.preventDefault();setDrag(false);handleFile(e.dataTransfer.files[0]);}} style={{border:`2px dashed ${drag?"#FF6B35":file?"#22c55e":"#ccc"}`,borderRadius:10,padding:file?"10px 12px":"16px 12px",textAlign:"center",cursor:"pointer",background:drag?"#FFF8F4":file?"#F0FDF4":"#FAFAFA",marginBottom:12}}>
-<input ref={ref} type="file" accept=".pdf" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
-{file?<><span style={{fontSize:18}}>✅</span><p style={{fontSize:12,fontWeight:600,color:"#16a34a",margin:"2px 0 0"}}>{file.name}</p><p style={{fontSize:10,color:"#888",margin:0}}>{(file.size/1024).toFixed(0)}KB • {pg} pages • tap to change</p></>:<><div style={{fontSize:24,marginBottom:2}}>📄</div><p style={{fontSize:13,fontWeight:600,color:"#333",margin:0}}>Drop your PDF here</p><p style={{fontSize:11,color:"#999",margin:"2px 0 0"}}>or tap to browse • Max 50MB</p></>}
+
+{/* Upload Zone */}
+<div onClick={()=>ref.current?.click()} onDragOver={e=>{e.preventDefault();setDrag(true);}} onDragLeave={()=>setDrag(false)} onDrop={e=>{e.preventDefault();setDrag(false);addFiles(e.dataTransfer.files);}} style={{border:`2px dashed ${drag?"#FF6B35":"#ccc"}`,borderRadius:10,padding:"16px 12px",textAlign:"center",cursor:"pointer",background:drag?"#FFF8F4":"#FAFAFA",marginBottom:12}}>
+<input ref={ref} type="file" accept=".pdf" multiple style={{display:"none"}} onChange={e=>{addFiles(e.target.files);e.target.value="";}}/>
+<div style={{fontSize:24,marginBottom:2}}>📄</div>
+<p style={{fontSize:13,fontWeight:600,color:"#333",margin:0}}>{files.length>0?"+ Add more PDFs":"Drop your PDFs here"}</p>
+<p style={{fontSize:11,color:"#999",margin:"2px 0 0"}}>or tap to browse • Multiple files • Max 50MB each</p>
 </div>
-<div style={{background:"#fff",borderRadius:10,padding:"14px 12px",border:"1px solid #eee",marginBottom:12}}>
-<h3 style={{fontSize:14,fontWeight:700,color:"#1a1a2e",margin:"0 0 10px"}}>Print Options</h3>
-<label style={{fontSize:10,fontWeight:600,color:"#999",display:"block",marginBottom:4}}>PRINT TYPE</label>
-<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>{P("B&W ₹1/pg",clr==="bw",()=>setClr("bw"))}{P("Color ₹2/pg",clr==="color",()=>setClr("color"))}{P("Booklet ₹2/pg",clr==="booklet",()=>setClr("booklet"))}</div>
-<label style={{fontSize:10,fontWeight:600,color:"#999",display:"block",marginBottom:4}}>PAPER SIZE</label>
-<div style={{display:"flex",gap:4,marginBottom:10}}>{["A4","A3","Legal","A5"].map(s=>P(s,paper===s,()=>setPaper(s)))}</div>
-<label style={{fontSize:10,fontWeight:600,color:"#999",display:"block",marginBottom:4}}>PRINT SIDE</label>
-<div style={{display:"flex",gap:4,marginBottom:10}}>{P("Single Side",sided==="single",()=>setSided("single"))}{P("Both Sides (−30%)",sided==="double",()=>setSided("double"))}</div>
-<div style={{display:"flex",gap:10,marginBottom:10}}>
-<Stepper value={pages} onChange={setPages} label="PAGES" sub={file?"(auto)":""}/>
-<Stepper value={copies} onChange={setCopies} label="COPIES"/>
+
+{/* File Cards */}
+{files.map((f,idx)=>{const bo=BIND.find(b=>b.id===f.bind);const price=calcPrice(f);return<div key={idx} style={{background:"#fff",borderRadius:10,padding:"12px",border:"1px solid #eee",marginBottom:8}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+<div style={{display:"flex",alignItems:"center",gap:6,minWidth:0,flex:1}}><span style={{fontSize:14}}>📄</span><div style={{minWidth:0}}><p style={{fontSize:12,fontWeight:600,color:"#333",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.file.name}</p><p style={{fontSize:10,color:"#888",margin:0}}>{(f.file.size/1024).toFixed(0)}KB • {f.pages} pages detected</p></div></div>
+<div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><span style={{fontSize:14,fontWeight:700,color:"#FF6B35"}}>₹{price}</span><button onClick={()=>removeFile(idx)} style={{border:"none",background:"#FEF2F2",color:"#ef4444",width:24,height:24,borderRadius:6,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div>
 </div>
-<label style={{fontSize:10,fontWeight:600,color:"#999",display:"block",marginBottom:4}}>BINDING</label>
-<div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{BIND.map(b=>P(`${b.icon}${b.name}${b.price?` +₹${b.price}`:""}`,bind===b.id,()=>setBind(b.id)))}</div>
+<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{P("B&W ₹1",f.clr==="bw",()=>updateFile(idx,"clr","bw"))}{P("Color ₹2",f.clr==="color",()=>updateFile(idx,"clr","color"))}{P("Booklet ₹2",f.clr==="booklet",()=>updateFile(idx,"clr","booklet"))}</div>
+<div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:6}}>{["A4","A3","Legal","A5"].map(s=>P(s,f.paper===s,()=>updateFile(idx,"paper",s)))}{P("1-Side",f.sided==="single",()=>updateFile(idx,"sided","single"))}{P("2-Side",f.sided==="double",()=>updateFile(idx,"sided","double"))}</div>
+<div style={{display:"flex",gap:8,marginBottom:6}}>
+<Stepper value={f.pages} onChange={v=>updateFile(idx,"pages",v)} label="PAGES" sub="(auto)"/>
+<Stepper value={f.copies} onChange={v=>updateFile(idx,"copies",v)} label="COPIES"/>
 </div>
-<div style={{background:"#fff",borderRadius:10,padding:"14px 12px",border:"1px solid #eee",marginBottom:12}}>
-<h3 style={{fontSize:13,fontWeight:700,color:"#1a1a2e",margin:"0 0 8px"}}>Order Summary</h3>
-{file?<>
-<div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"#F0FDF4",borderRadius:8,marginBottom:8}}><span>📄</span><div><p style={{fontSize:11,fontWeight:600,color:"#333",margin:0}}>{file.name}</p><p style={{fontSize:10,color:"#888",margin:0}}>{pg}p • {cp}c • {paper} • {clr==="bw"?"B&W":"Color"}</p></div></div>
-<div style={{fontSize:11}}>
-<div style={{display:"flex",justifyContent:"space-between",marginBottom:3,color:"#666"}}><span>Printing ({pg}p × {cp}c)</span><span style={{fontWeight:600,color:"#333"}}>₹{Math.ceil(ppp*sm*pg*cp)}</span></div>
-{bo.price>0&&<div style={{display:"flex",justifyContent:"space-between",marginBottom:3,color:"#666"}}><span>{bo.name} × {cp}</span><span style={{fontWeight:600,color:"#333"}}>₹{bo.price*cp}</span></div>}
-<div style={{display:"flex",justifyContent:"space-between",marginBottom:3,color:"#666"}}><span>Delivery</span><span style={{fontWeight:600,color:del===0?"#16a34a":"#333"}}>{del===0?"FREE":"₹40"}</span></div>
+<div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{BIND.map(b=>P(`${b.icon}${b.name}${b.price?` +₹${b.price}`:""}`,f.bind===b.id,()=>updateFile(idx,"bind",b.id)))}</div>
+</div>;})}
+
+{/* Order Summary */}
+{files.length>0&&<div style={{background:"#fff",borderRadius:10,padding:"14px 12px",border:"1px solid #eee",marginBottom:12}}>
+<h3 style={{fontSize:13,fontWeight:700,color:"#1a1a2e",margin:"0 0 8px"}}>Order Summary ({files.length} file{files.length>1?"s":""})</h3>
+{files.map((f,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#666",marginBottom:3}}><span>{f.file.name} ({f.pages}p×{f.copies}c)</span><span style={{fontWeight:600,color:"#333"}}>₹{calcPrice(f)}</span></div>)}
+<div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"#666",marginBottom:3,marginTop:4,paddingTop:4,borderTop:"1px solid #f0f0f0"}}><span>Delivery</span><span style={{fontWeight:600,color:del===0?"#16a34a":"#333"}}>{del===0?"FREE":"₹40"}</span></div>
 {del===0&&<p style={{fontSize:9,color:"#16a34a",margin:"0 0 4px"}}>🎉 Free delivery on orders ₹499+</p>}
-</div>
-<div style={{borderTop:"2px solid #FF6B35",paddingTop:8,marginTop:4,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:13,fontWeight:700}}>Total</span><span style={{fontSize:20,fontWeight:800,color:"#FF6B35"}}>₹{sub+del}</span></div>
-</>:<div style={{textAlign:"center",padding:"8px 0",color:"#ccc"}}><span style={{fontSize:20}}>📄</span><p style={{fontSize:10,margin:"2px 0 0"}}>Upload PDF to see pricing</p></div>}
-<button onClick={()=>{if(!file)return;onProceed({file:file.name,pages:pg,copies:cp,colorMode:clr,paperSize:paper,sided,binding:bo.name,price:sub},file);}} disabled={!file} style={{width:"100%",padding:11,borderRadius:8,border:"none",marginTop:8,background:file?"linear-gradient(135deg,#FF6B35,#FF8C42)":"#ddd",color:file?"#fff":"#999",fontSize:14,fontWeight:700,cursor:file?"pointer":"not-allowed"}}>{file?"Proceed to Checkout →":"Upload a PDF first"}</button>
-</div>
-<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5}}>{[{i:"⚡",t:"24hr Turnaround"},{i:"🔒",t:"Secure Files"},{i:"📱",t:"UPI & Razorpay"},{i:"🚚",t:"Free Delivery 499+"}].map(x=><div key={x.t} style={{background:"#fff",borderRadius:6,padding:"6px 8px",border:"1px solid #f0f0f0",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12}}>{x.i}</span><span style={{fontSize:9,color:"#888",fontWeight:500}}>{x.t}</span></div>)}</div>
+<div style={{borderTop:"2px solid #FF6B35",paddingTop:8,marginTop:4,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:13,fontWeight:700}}>Total</span><span style={{fontSize:20,fontWeight:800,color:"#FF6B35"}}>₹{totalPrice+del}</span></div>
+<button onClick={()=>{if(files.length===0)return;const names=files.map(f=>f.file.name).join(", ");const totalPages=files.reduce((s,f)=>s+(parseInt(f.pages)||1)*(parseInt(f.copies)||1),0);onProceed({file:names,files:files.map(f=>({name:f.file.name,pages:parseInt(f.pages)||1,copies:parseInt(f.copies)||1,colorMode:f.clr,paperSize:f.paper,sided:f.sided,binding:BIND.find(b=>b.id===f.bind)?.name||"No Binding"})),pages:totalPages,copies:1,colorMode:files[0].clr,paperSize:files[0].paper,sided:files[0].sided,binding:files[0].bind,price:totalPrice},files.map(f=>f.file));}} style={{width:"100%",padding:11,borderRadius:8,border:"none",marginTop:8,background:"linear-gradient(135deg,#FF6B35,#FF8C42)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>Proceed to Checkout →</button>
+</div>}
+
+{files.length===0&&<div style={{background:"#fff",borderRadius:10,padding:"14px 12px",border:"1px solid #eee",marginBottom:12,textAlign:"center"}}><span style={{fontSize:20}}>📄</span><p style={{fontSize:10,color:"#ccc",margin:"4px 0 0"}}>Upload PDFs to see pricing</p></div>}
+
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:5}}>{[{i:"⚡",t:"24hr Turnaround"},{i:"🔒",t:"Secure Files"},{i:"📱",t:"UPI Payment"},{i:"🚚",t:"Free Delivery 499+"}].map(x=><div key={x.t} style={{background:"#fff",borderRadius:6,padding:"6px 8px",border:"1px solid #f0f0f0",display:"flex",alignItems:"center",gap:5}}><span style={{fontSize:12}}>{x.i}</span><span style={{fontSize:9,color:"#888",fontWeight:500}}>{x.t}</span></div>)}</div>
 </div></div>;}
 
 /* ── ADDRESS with saved addresses (up to 5) ── */
@@ -181,17 +197,25 @@ export default function App(){const[page,setPage]=useState("home");const[user,se
 
 useEffect(()=>{if(api.isLoggedIn()){api.getProfile().then(u=>setUser(u)).catch(()=>api.signout());}},[]);
 
-const proceed=(d,file)=>{setFileObj(file);if(!user){setPend(d);setPage("signin");}else{setOrder(d);setPage("address");}};
+const proceed=(d,fileOrFiles)=>{
+  // fileOrFiles can be array of File objects for multi-upload
+  setFileObj(Array.isArray(fileOrFiles)?fileOrFiles:fileOrFiles?[fileOrFiles]:[]);
+  if(!user){setPend(d);setPage("signin");}else{setOrder(d);setPage("address");}
+};
 const out=()=>{api.signout();setUser(null);setPage("home");};
 const authAndProceed=u=>{setUser(u);if(pend){setOrder(pend);setPend(null);setPage("address");}else setPage("home");};
 
 const handlePay=async(paymentMethod)=>{try{
-  let filePath="",fileSize=0;
-  if(fileObj){try{const up=await api.uploadPDF(fileObj);filePath=up.filePath;fileSize=up.fileSize;}catch(e){console.log("Upload skipped:",e.message);}}
+  // Upload all PDF files
+  let fileNames=[],filePaths=[];
+  if(fileObj&&fileObj.length>0){
+    for(const f of fileObj){
+      try{const up=await api.uploadPDF(f);filePaths.push(up.filePath);fileNames.push(f.name);}catch(e){console.log("Upload skipped:",e.message);fileNames.push(f.name);}
+    }
+  }
   const pm=paymentMethod||"upi";
-  const created=await api.createOrder({fileName:order.file,filePath,fileSize,pages:order.pages,copies:order.copies,colorMode:order.colorMode,paperSize:order.paperSize,sided:order.sided,binding:order.binding,notes:"",price:order.price,deliveryAddress:address,paymentMethod:pm==="cod"?"cash":pm});
-  // WhatsApp notification to admin
-  const msg=encodeURIComponent(`🆕 New Order!\n📋 ${created.orderId||"Order"}\n👤 ${address.name} (${address.phone})\n📄 ${order.file} — ${order.pages}p × ${order.copies}c\n💰 ₹${created.totalPrice||order.price} (${pm==="cod"?"COD":pm})\n📍 ${address.city} - ${address.pincode}`);
+  const created=await api.createOrder({fileName:order.file,filePath:filePaths.join(","),fileSize:0,pages:order.pages,copies:order.copies,colorMode:order.colorMode,paperSize:order.paperSize,sided:order.sided,binding:order.binding,notes:order.files?JSON.stringify(order.files):"",price:order.price,deliveryAddress:address,paymentMethod:pm==="cod"?"cash":pm});
+  const msg=encodeURIComponent(`🆕 New Order!\n📋 ${created.orderId||"Order"}\n👤 ${address.name} (${address.phone})\n📄 ${order.file}\n💰 ₹${created.totalPrice||order.price} (${pm==="cod"?"COD":pm})\n📍 ${address.city} - ${address.pincode}`);
   try{fetch(`https://api.callmebot.com/whatsapp.php?phone=918104780153&text=${msg}&apikey=YOUR_API_KEY`,{mode:"no-cors"});}catch(e){}
   setPage("status");
 }catch(e){console.error("Order error:",e);alert("Order failed: "+e.message);}};
