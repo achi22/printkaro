@@ -184,6 +184,7 @@ function OrderDetail({ order, onClose, onUpdate, onCancel, onRefresh }) {
   const [editing, setEditing] = useState(false);
   const [ed, setEd] = useState({});
   const [showCancel, setShowCancel] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
   const [trackingId, setTrackingId] = useState(order.trackingId || "");
   const [partner, setPartner] = useState(order.deliveryPartner || "");
   const [saving, setSaving] = useState(false);
@@ -198,6 +199,7 @@ function OrderDetail({ order, onClose, onUpdate, onCancel, onRefresh }) {
   const saveTracking = async () => { setSaving(true); try { await api.updateOrder(order._id, { trackingId, deliveryPartner: partner }); onRefresh(); } catch (e) { alert(e.message); } setSaving(false); };
   const changeStatus = async (s) => { setSaving(true); try { await api.updateOrderStatus(order._id, s); onRefresh(); onClose(); } catch (e) { alert(e.message); } setSaving(false); };
   const cancelOrder = async () => { setSaving(true); try { await api.updateOrderStatus(order._id, "cancelled", "Cancelled by admin"); onRefresh(); onClose(); } catch (e) { alert(e.message); } setSaving(false); };
+  const deleteOrder = async () => { setSaving(true); try { await api.deleteOrder(order._id); onRefresh(); onClose(); } catch (e) { alert(e.message); } setSaving(false); };
 
   return (
     <Modal onClose={onClose} title={`Order ${order.orderId}`} wide>
@@ -208,7 +210,8 @@ function OrderDetail({ order, onClose, onUpdate, onCancel, onRefresh }) {
         <button onClick={() => printInvoice(order)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>🧾 Invoice</button>
         <button onClick={() => setEditing(!editing)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #ddd", background: editing ? "#FFF3ED" : "#fff", color: editing ? "#FF6B35" : "#333", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>✏️ {editing ? "Cancel" : "Edit"}</button>
         <a href={`https://wa.me/91${addr.phone || user.phone}?text=Hi ${addr.name || user.name}, your PrintKaaro order ${order.orderId} update:`} target="_blank" rel="noopener noreferrer" style={{ padding: "6px 12px", borderRadius: 6, background: "#25D366", color: "#fff", fontSize: 11, fontWeight: 600, textDecoration: "none" }}>💬 WhatsApp</a>
-        {order.status !== "cancelled" && order.status !== "delivered" && <button onClick={() => setShowCancel(true)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #ef4444", background: "#fff", color: "#ef4444", fontSize: 11, fontWeight: 600, cursor: "pointer", marginLeft: "auto" }}>Cancel</button>}
+        {order.status !== "cancelled" && order.status !== "delivered" && <button onClick={() => setShowCancel(true)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #ef4444", background: "#fff", color: "#ef4444", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Cancel</button>}
+        <button onClick={() => setShowDelete(true)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #888", background: "#fff", color: "#888", fontSize: 11, fontWeight: 600, cursor: "pointer", marginLeft: "auto" }}>🗑️ Delete</button>
       </div>
 
       {showCancel && <div style={{ background: "#FEF2F2", borderRadius: 8, padding: 14, marginBottom: 12, border: "1px solid #FECACA" }}>
@@ -216,6 +219,15 @@ function OrderDetail({ order, onClose, onUpdate, onCancel, onRefresh }) {
         <div style={{ display: "flex", gap: 6 }}>
           <button onClick={cancelOrder} disabled={saving} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: "#ef4444", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>Yes, Cancel</button>
           <button onClick={() => setShowCancel(false)} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>No</button>
+        </div>
+      </div>}
+
+      {showDelete && <div style={{ background: "#1a1a2e", borderRadius: 8, padding: 14, marginBottom: 12, border: "1px solid #333" }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "#ef4444", margin: "0 0 4px" }}>Permanently delete this order?</p>
+        <p style={{ fontSize: 11, color: "#999", margin: "0 0 10px" }}>This will remove the order and its PDF files forever. This cannot be undone.</p>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button onClick={deleteOrder} disabled={saving} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: "#ef4444", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>{saving ? "Deleting..." : "Yes, Delete Forever"}</button>
+          <button onClick={() => setShowDelete(false)} style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #555", background: "none", color: "#999", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>No, Keep</button>
         </div>
       </div>}
 
@@ -430,6 +442,7 @@ export default function AdminDashboard() {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button onClick={fetchData} style={{ fontSize: 11, color: "#888", border: "1px solid #333", background: "none", padding: "4px 10px", borderRadius: 5, cursor: "pointer" }}>🔄 Refresh</button>
+          <button onClick={async()=>{if(confirm("Delete all delivered/cancelled orders older than 7 days?")){try{const r=await api.cleanupOldOrders();alert(r.message);fetchData();}catch(e){alert(e.message);}}}} style={{ fontSize: 11, color: "#f59e0b", border: "1px solid #f59e0b30", background: "none", padding: "4px 10px", borderRadius: 5, cursor: "pointer" }}>🧹 Cleanup</button>
           <a href="/" style={{ fontSize: 11, color: "#888", textDecoration: "none" }}>← Store</a>
           <button onClick={() => setAdminAuth(false)} style={{ fontSize: 10, color: "#ef4444", border: "1px solid #ef444430", background: "none", padding: "4px 10px", borderRadius: 5, cursor: "pointer" }}>Logout</button>
         </div>

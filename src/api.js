@@ -61,4 +61,6 @@ export async function updateOrderStatus(id, status, note) { return (await api(`/
 export async function updateOrder(id, u) { return (await api(`/api/admin/orders/${id}`, { method: "PATCH", body: JSON.stringify(u), headers: ah() })).order; }
 export async function getCustomers() { return (await api("/api/admin/customers", { headers: ah() })).customers; }
 export async function addManualOrder(d) { return (await api("/api/admin/orders/manual", { method: "POST", body: JSON.stringify(d), headers: ah() })).order; }
+export async function deleteOrder(id) { return api(`/api/admin/orders/${id}`, { method: "DELETE", headers: ah() }); }
+export async function cleanupOldOrders() { return api("/api/admin/orders-cleanup", { method: "DELETE", headers: ah() }); }
 export function getAdminPdfUrl(orderId) { return `${API_URL}/api/orders/${orderId}/file?adminpass=${adminPassword}`; }
