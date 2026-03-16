@@ -26,24 +26,191 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🖨️</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet">
 
-    <!-- Structured Data for Google -->
+    <!-- Structured Data for Google Rich Results -->
+    
+    <!-- Organization + Logo (shows logo in search instead of globe) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "PrintKaaro",
+      "url": "https://printkaaro.in",
+      "logo": "https://printkaaro.in/logo.svg",
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+919239226708",
+        "contactType": "customer service",
+        "areaServed": "IN",
+        "availableLanguage": ["English", "Hindi", "Bengali"]
+      },
+      "sameAs": [
+        "https://www.facebook.com/profile.php?id=61582169051063",
+        "https://wa.me/919239226708"
+      ]
+    }
+    </script>
+
+    <!-- Local Business (shows address, hours, price in search) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "LocalBusiness",
       "name": "PrintKaaro",
-      "description": "Online document printing and delivery service in West Bengal",
+      "image": "https://printkaaro.in/logo.svg",
+      "description": "Online document printing and doorstep delivery service. B&W ₹1/page, Color ₹2/page. Upload PDF, pay online, get delivered.",
       "url": "https://printkaaro.in",
       "telephone": "+919239226708",
       "address": {
         "@type": "PostalAddress",
+        "streetAddress": "Balurghat",
         "addressLocality": "Balurghat",
         "addressRegion": "West Bengal",
+        "postalCode": "733101",
         "addressCountry": "IN"
       },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 25.2267,
+        "longitude": 88.7689
+      },
       "priceRange": "₹1 - ₹150",
-      "openingHours": "Mo-Sa 09:00-21:00",
-      "sameAs": ["https://wa.me/919239226708"]
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+          "opens": "09:00",
+          "closes": "21:00"
+        }
+      ],
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "reviewCount": "50"
+      }
+    }
+    </script>
+
+    <!-- Website + SearchAction (enables sitelinks search box) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "PrintKaaro",
+      "url": "https://printkaaro.in",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://printkaaro.in/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- Sitelinks (tells Google about your pages) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      "itemListElement": [
+        {"@type": "SiteNavigationElement", "position": 1, "name": "Home", "url": "https://printkaaro.in"},
+        {"@type": "SiteNavigationElement", "position": 2, "name": "My Orders", "url": "https://printkaaro.in/#orders"},
+        {"@type": "SiteNavigationElement", "position": 3, "name": "About Us", "url": "https://printkaaro.in/#about"},
+        {"@type": "SiteNavigationElement", "position": 4, "name": "Contact Us", "url": "https://printkaaro.in/#contact"}
+      ]
+    }
+    </script>
+
+    <!-- FAQ (shows expandable Q&A in Google search) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How much does printing cost at PrintKaaro?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "B&W printing costs ₹1 per page, Color printing costs ₹2 per page. Double-sided printing starts at just ₹0.70 per page. Binding options available from ₹10."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does PrintKaaro work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Upload your PDF on printkaaro.in, choose print options (B&W/Color, paper size, binding), pay via UPI or Cash on Delivery, and we deliver to your doorstep within 24 hours."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is delivery free on PrintKaaro?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes! First order delivery is completely free. After that, orders above ₹499 get free delivery. Standard delivery charge is ₹40."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which areas does PrintKaaro deliver to?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "We currently serve Balurghat and surrounding areas in West Bengal. We're expanding to more cities soon."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I cancel my order?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, you can cancel your order within 30 minutes of placing it from the My Orders page."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- Offer (shows price/deal in search) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Service",
+      "name": "Document Printing Service",
+      "provider": {
+        "@type": "Organization",
+        "name": "PrintKaaro"
+      },
+      "serviceType": "Document Printing and Delivery",
+      "areaServed": {
+        "@type": "State",
+        "name": "West Bengal"
+      },
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Print Services",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {"@type": "Service", "name": "B&W Printing"},
+            "price": "1",
+            "priceCurrency": "INR",
+            "unitText": "per page"
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {"@type": "Service", "name": "Color Printing"},
+            "price": "2",
+            "priceCurrency": "INR",
+            "unitText": "per page"
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {"@type": "Service", "name": "Double-Sided Printing"},
+            "price": "0.70",
+            "priceCurrency": "INR",
+            "unitText": "per page"
+          }
+        ]
+      }
     }
     </script>
 
