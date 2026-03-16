@@ -2,11 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import * as api from "./api.js";
 
 const BIND = [
-  { id: "none", name: "No Binding", price: 0, icon: "📋" },
+  { id: "none", name: "None", price: 0, icon: "📋" },
   { id: "spiral", name: "Spiral", price: 25, icon: "🔗" },
   { id: "staple", name: "Staple", price: 10, icon: "📌" },
-  { id: "perfect", name: "Perfect Bind", price: 60, icon: "📖" },
-  { id: "hardcover", name: "Hardcover", price: 150, icon: "📕" },
+  { id: "perfect", name: "Perfect", price: 60, icon: "📖" },
+  { id: "hardcover", name: "Hard", price: 150, icon: "📕" },
 ];
 
 const P = (label, active, fn) => <button key={label} onClick={fn} style={{ padding:"7px 11px",borderRadius:8,fontSize:11,fontWeight:500,cursor:"pointer",border:`1.5px solid ${active?"#FF6B35":"#ddd"}`,background:active?"#FFF3ED":"#fff",color:active?"#FF6B35":"#555",whiteSpace:"nowrap" }}>{label}</button>;
@@ -165,7 +165,7 @@ return<div key={idx} style={{background:"#fff",borderRadius:10,padding:"14px",bo
 
 <div style={{marginBottom:8}}>
 <label style={{fontSize:12,fontWeight:600,color:"#999",display:"block",marginBottom:5}}>PRINT SIDE</label>
-<div style={{display:"flex",gap:5}}>{P(`📄📄 Both Sides ${f.clr==="bw"?"₹0.75":"₹2"}/pg`,f.sided==="double",()=>updateFile(idx,"sided","double"))}{P(`📄 Single Side ${f.clr==="bw"?"₹1":"₹3"}/pg`,f.sided==="single",()=>updateFile(idx,"sided","single"))}</div>
+<div style={{display:"flex",gap:5}}>{P("📄📄 Both Sides",f.sided==="double",()=>updateFile(idx,"sided","double"))}{P("📄 Single Side",f.sided==="single",()=>updateFile(idx,"sided","single"))}</div>
 </div>
 
 <div style={{display:"flex",gap:10,marginBottom:8}}>
@@ -174,7 +174,7 @@ return<div key={idx} style={{background:"#fff",borderRadius:10,padding:"14px",bo
 </div>
 <div>
 <label style={{fontSize:12,fontWeight:600,color:"#999",display:"block",marginBottom:5}}>BINDING</label>
-<div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{BIND.map(b=>P(`${b.icon} ${b.name}${b.price?` +₹${b.price}`:""}`,f.bind===b.id,()=>updateFile(idx,"bind",b.id)))}</div>
+<div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{BIND.map(b=>P(`${b.icon}${b.name}${b.price?` ₹${b.price}`:""}`,f.bind===b.id,()=>updateFile(idx,"bind",b.id)))}</div>
 </div>
 </div>;})}
 
