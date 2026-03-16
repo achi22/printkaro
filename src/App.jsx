@@ -49,7 +49,7 @@ const addFiles=(fileList)=>{Array.from(fileList).forEach(f=>{
     setFiles(prev=>[...prev,{file:f,type:"photo",preview:url,photoSize:"passport",qty:1,laminated:false,frame:"none"}]);
   } else if(f.type==="application/pdf"){
     // PDF file — document printing
-    countPages(f,pg=>{setFiles(prev=>[...prev,{file:f,type:"pdf",pages:pg,copies:1,clr:"bw",paper:"A4",sided:"single",bind:"none"}]);});
+    countPages(f,pg=>{setFiles(prev=>[...prev,{file:f,type:"pdf",pages:pg,copies:1,clr:"bw",paper:"A4",sided:"double",bind:"none"}]);});
   }
 });};
 const updateFile=(idx,key,val)=>setFiles(prev=>prev.map((f,i)=>i===idx?{...f,[key]:val}:f));
@@ -65,7 +65,11 @@ const calcPrice=(f)=>{
     price+=fr.price*qty;
     return price;
   }
-  const ppp=f.clr==="bw"?1:2;const sm=f.sided==="double"?0.7:1;const bo=BIND.find(b=>b.id===f.bind);const pg=parseInt(f.pages)||1;const cp=parseInt(f.copies)||1;return Math.ceil(ppp*sm*pg*cp+(bo?.price||0)*cp);
+  // New pricing: B&W both=0.75, B&W single=1, Color both=2, Color single=3
+  let ppp;
+  if(f.clr==="bw") ppp=f.sided==="double"?0.75:1;
+  else ppp=f.sided==="double"?2:3;
+  const bo=BIND.find(b=>b.id===f.bind);const pg=parseInt(f.pages)||1;const cp=parseInt(f.copies)||1;return Math.ceil(ppp*pg*cp+(bo?.price||0)*cp);
 };
 const totalPrice=files.reduce((s,f)=>s+calcPrice(f),0);
 const del=totalPrice>=499?0:40;
@@ -81,12 +85,12 @@ return<div style={{background:"linear-gradient(180deg,#FFF9F5 0%,#FFF 40%)",minH
 {/* Pricing Cards */}
 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
 <div style={{background:"#fff",borderRadius:10,padding:"12px 8px",border:"1px solid #eee",textAlign:"center"}}>
-<div style={{fontSize:24,fontWeight:800,color:"#1a1a2e"}}>₹1<span style={{fontSize:12,fontWeight:500,color:"#999"}}>/page</span></div>
-<div style={{fontSize:13,fontWeight:600,color:"#555",marginTop:2}}>B&W Print</div>
+<div style={{fontSize:24,fontWeight:800,color:"#1a1a2e"}}>₹0.75<span style={{fontSize:12,fontWeight:500,color:"#999"}}>/page</span></div>
+<div style={{fontSize:13,fontWeight:600,color:"#555",marginTop:2}}>B&W Both Sides</div>
 </div>
 <div style={{background:"#fff",borderRadius:10,padding:"12px 8px",border:"1px solid #eee",textAlign:"center"}}>
 <div style={{fontSize:24,fontWeight:800,color:"#FF6B35"}}>₹2<span style={{fontSize:12,fontWeight:500,color:"#999"}}>/page</span></div>
-<div style={{fontSize:13,fontWeight:600,color:"#555",marginTop:2}}>Color Print</div>
+<div style={{fontSize:13,fontWeight:600,color:"#555",marginTop:2}}>Color Both Sides</div>
 </div>
 <div style={{background:"#fff",borderRadius:10,padding:"12px 8px",border:"1px solid #eee",textAlign:"center"}}>
 <div style={{fontSize:24,fontWeight:800,color:"#8b5cf6"}}>₹3<span style={{fontSize:12,fontWeight:500,color:"#999"}}>/piece</span></div>
@@ -95,8 +99,8 @@ return<div style={{background:"linear-gradient(180deg,#FFF9F5 0%,#FFF 40%)",minH
 </div>
 
 <div style={{background:"linear-gradient(135deg,#1a1a2e,#16213e)",borderRadius:10,padding:"14px 16px",marginBottom:14,textAlign:"center"}}>
-<p style={{fontSize:15,fontWeight:700,color:"#fff",margin:"0 0 2px"}}>🔥 Double-sided printing from just <span style={{color:"#FF8C42"}}>₹0.70/page!</span></p>
-<p style={{fontSize:12,color:"#bbb",margin:0}}>Save 30% when you print on both sides</p>
+<p style={{fontSize:15,fontWeight:700,color:"#fff",margin:"0 0 2px"}}>🔥 B&W both sides just <span style={{color:"#FF8C42"}}>₹0.75/page!</span> Color both sides <span style={{color:"#FF8C42"}}>₹2/page!</span></p>
+<p style={{fontSize:12,color:"#bbb",margin:0}}>Single side: B&W ₹1 | Color ₹3 per page</p>
 </div>
 
 {/* Upload Zone */}
@@ -151,7 +155,7 @@ return<div key={idx} style={{background:"#fff",borderRadius:10,padding:"14px",bo
 
 <div style={{marginBottom:8}}>
 <label style={{fontSize:12,fontWeight:600,color:"#999",display:"block",marginBottom:5}}>COLOUR TYPE</label>
-<div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{P("⬛ B&W ₹1/pg",f.clr==="bw",()=>updateFile(idx,"clr","bw"))}{P("🎨 Color ₹2/pg",f.clr==="color",()=>updateFile(idx,"clr","color"))}</div>
+<div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{P("⬛ B&W",f.clr==="bw",()=>updateFile(idx,"clr","bw"))}{P("🎨 Color",f.clr==="color",()=>updateFile(idx,"clr","color"))}</div>
 </div>
 
 <div style={{marginBottom:8}}>
@@ -161,7 +165,7 @@ return<div key={idx} style={{background:"#fff",borderRadius:10,padding:"14px",bo
 
 <div style={{marginBottom:8}}>
 <label style={{fontSize:12,fontWeight:600,color:"#999",display:"block",marginBottom:5}}>PRINT SIDE</label>
-<div style={{display:"flex",gap:5}}>{P("📄 Single Side",f.sided==="single",()=>updateFile(idx,"sided","single"))}{P("📄📄 Both Sides (−30%)",f.sided==="double",()=>updateFile(idx,"sided","double"))}</div>
+<div style={{display:"flex",gap:5}}>{P(`📄📄 Both Sides ${f.clr==="bw"?"₹0.75":"₹2"}/pg`,f.sided==="double",()=>updateFile(idx,"sided","double"))}{P(`📄 Single Side ${f.clr==="bw"?"₹1":"₹3"}/pg`,f.sided==="single",()=>updateFile(idx,"sided","single"))}</div>
 </div>
 
 <div style={{display:"flex",gap:10,marginBottom:8}}>
@@ -302,7 +306,7 @@ return<div style={{maxWidth:520,margin:"0 auto",padding:"24px 14px"}}><h2 style=
 
 function AccountPage({user,setPage,onSignOut}){if(!user)return<div style={{maxWidth:380,margin:"0 auto",padding:"50px 16px",textAlign:"center"}}><div style={{fontSize:36}}>👤</div><h2 style={{fontSize:20,fontWeight:700,margin:"8px 0 6px"}}>Sign in to view account</h2><button onClick={()=>setPage("signin")} style={{padding:"11px 24px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#FF6B35,#FF8C42)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginTop:10}}>Sign In</button></div>;return<div style={{maxWidth:480,margin:"0 auto",padding:"24px 14px"}}><h2 style={{fontSize:22,fontWeight:700,margin:"0 0 16px",fontFamily:"'DM Serif Display',Georgia,serif"}}>My Account</h2><div style={{background:"#fff",borderRadius:10,padding:18,border:"1px solid #eee",marginBottom:12}}><div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}><div style={{width:44,height:44,borderRadius:"50%",background:"linear-gradient(135deg,#FF6B35,#FF8C42)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:18,fontWeight:700,flexShrink:0}}>{user.name[0].toUpperCase()}</div><div><div style={{fontSize:17,fontWeight:700}}>{user.name}</div><div style={{fontSize:13,color:"#888"}}>📱 +91 {user.phone}</div></div></div><button onClick={()=>setPage("orders")} style={{width:"100%",padding:10,borderRadius:6,border:"1.5px solid #ddd",background:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"}}>📦 View Orders</button></div><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee",marginBottom:12}}><h3 style={{fontSize:15,fontWeight:700,margin:"0 0 10px"}}>Saved Addresses ({api.getSavedAddresses().length})</h3>{api.getSavedAddresses().length===0?<p style={{fontSize:13,color:"#999"}}>No saved addresses yet</p>:api.getSavedAddresses().map((a,i)=><div key={i} style={{padding:10,background:"#f9f9f9",borderRadius:6,marginBottom:5,fontSize:13}}><span style={{fontWeight:600}}>{a.name}</span> — {a.address}, {a.city} - {a.pincode}</div>)}</div><button onClick={onSignOut} style={{width:"100%",padding:12,borderRadius:8,border:"1.5px solid #ef4444",background:"#fff",color:"#ef4444",fontSize:14,fontWeight:600,cursor:"pointer"}}>Sign Out</button></div>;}
 
-function AboutPage(){return<div style={{maxWidth:520,margin:"0 auto",padding:"24px 14px"}}><h2 style={{fontSize:22,fontWeight:700,margin:"0 0 6px",fontFamily:"'DM Serif Display',Georgia,serif"}}>About PrintKaaro</h2><p style={{fontSize:14,color:"#888",marginBottom:14}}>Your online print partner</p><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee",marginBottom:12}}><p style={{fontSize:14,color:"#555",lineHeight:1.7,margin:0}}>PrintKaaro makes printing easy. Documents, photos, booklets, binding — delivered to your doorstep in West Bengal. Double-sided printing starts at just ₹0.70/page!</p></div><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee"}}><h3 style={{fontSize:15,fontWeight:700,color:"#FF6B35",margin:"0 0 10px"}}>Why Us?</h3>{[{i:"⚡",t:"Fast — 24hr printing"},{i:"💰",t:"B&W ₹1/pg, Color ₹2/pg, Photo ₹3/pc"},{i:"📄",t:"Both sides — just ₹0.70/page!"},{i:"📷",t:"Photo printing with frame & lamination"},{i:"🔒",t:"Secure files"},{i:"🚚",t:"Free delivery — first order + ₹499+"}].map((x,i)=><div key={i} style={{display:"flex",gap:10,marginBottom:10}}><span style={{fontSize:16}}>{x.i}</span><span style={{fontSize:14,color:"#444"}}>{x.t}</span></div>)}</div></div>;}
+function AboutPage(){return<div style={{maxWidth:520,margin:"0 auto",padding:"24px 14px"}}><h2 style={{fontSize:22,fontWeight:700,margin:"0 0 6px",fontFamily:"'DM Serif Display',Georgia,serif"}}>About PrintKaaro</h2><p style={{fontSize:14,color:"#888",marginBottom:14}}>Your online print partner</p><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee",marginBottom:12}}><p style={{fontSize:14,color:"#555",lineHeight:1.7,margin:0}}>PrintKaaro makes printing easy. Documents, photos, booklets, binding — delivered to your doorstep in West Bengal. Double-sided printing starts at just ₹0.70/page!</p></div><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee"}}><h3 style={{fontSize:15,fontWeight:700,color:"#FF6B35",margin:"0 0 10px"}}>Why Us?</h3>{[{i:"⚡",t:"Fast — 24hr printing"},{i:"💰",t:"B&W ₹0.75/pg both sides, Color ₹2/pg both sides"},{i:"📄",t:"Single side: B&W ₹1, Color ₹3"},{i:"📷",t:"Photo printing with frame & lamination"},{i:"🔒",t:"Secure files"},{i:"🚚",t:"Free delivery — first order + ₹499+"}].map((x,i)=><div key={i} style={{display:"flex",gap:10,marginBottom:10}}><span style={{fontSize:16}}>{x.i}</span><span style={{fontSize:14,color:"#444"}}>{x.t}</span></div>)}</div></div>;}
 
 function ContactPage(){const[sent,setSent]=useState(false);const I={width:"100%",padding:"12px 14px",borderRadius:8,border:"1.5px solid #ddd",fontSize:16,outline:"none",boxSizing:"border-box"};return<div style={{maxWidth:480,margin:"0 auto",padding:"24px 14px"}}><h2 style={{fontSize:22,fontWeight:700,margin:"0 0 6px",fontFamily:"'DM Serif Display',Georgia,serif"}}>Contact Us</h2><p style={{fontSize:14,color:"#888",marginBottom:14}}>We'd love to hear from you</p><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>{[{i:"💬",l:"WhatsApp",c:"#25D366",h:"https://wa.me/91XXXXXXXXXX"},{i:"📞",l:"Call",c:"#3b82f6",h:"tel:+91XXXXXXXXXX"},{i:"✉️",l:"Email",c:"#FF6B35",h:"mailto:hello@printkaaro.in"},{i:"📍",l:"Balurghat",c:"#333"}].map((x,idx)=>x.h?<a key={idx} href={x.h} target="_blank" rel="noopener noreferrer" style={{padding:14,background:"#fff",borderRadius:10,border:"1px solid #eee",textAlign:"center",textDecoration:"none"}}><div style={{fontSize:22,marginBottom:2}}>{x.i}</div><div style={{fontSize:13,fontWeight:600,color:x.c}}>{x.l}</div></a>:<div key={idx} style={{padding:14,background:"#fff",borderRadius:10,border:"1px solid #eee",textAlign:"center"}}><div style={{fontSize:22,marginBottom:2}}>{x.i}</div><div style={{fontSize:13,fontWeight:600,color:x.c}}>{x.l}</div></div>)}</div><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee"}}><h3 style={{fontSize:15,fontWeight:700,margin:"0 0 10px"}}>Send message</h3>{sent?<div style={{textAlign:"center",padding:12}}><span style={{fontSize:28}}>✅</span><p style={{fontSize:14,fontWeight:600,color:"#16a34a",margin:"6px 0 0"}}>Sent! We'll reply soon.</p></div>:<><input placeholder="Name" style={{...I,marginBottom:8}}/><input placeholder="Phone or email" style={{...I,marginBottom:8}}/><textarea rows={3} placeholder="Message" style={{...I,resize:"none",marginBottom:10}}/><button onClick={()=>setSent(true)} style={{width:"100%",padding:12,borderRadius:8,border:"none",background:"linear-gradient(135deg,#FF6B35,#FF8C42)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer"}}>Send</button></>}</div></div>;}
 

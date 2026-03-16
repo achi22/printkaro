@@ -100,7 +100,7 @@ function printInvoice(order) {
   try { fileDetails = JSON.parse(order.notes || "[]"); } catch (e) {}
   
   const calcFilePrice = (f) => {
-    const ppp = f.colorMode === "bw" ? 1 : 2;
+    const ppp = f.colorMode === "bw" ? 0.75 : 2;
     const sm = f.sided === "double" ? 0.7 : 1;
     const bindPrice = {"No Binding":0,"Spiral":25,"Staple":10,"Perfect Bind":60,"Hardcover":150}[f.binding] || 0;
     return Math.ceil(ppp * sm * (f.pages || 1) * (f.copies || 1) + bindPrice * (f.copies || 1));
@@ -114,7 +114,7 @@ function printInvoice(order) {
         <div style="background:#f9f9f9;border-radius:6px;padding:10px;margin:6px 0;">
           <div class="row"><strong>📄 File ${i + 1}:</strong><span>${f.name}</span></div>
           <div class="row"><span style="color:#888">Pages × Copies:</span><span>${f.pages} × ${f.copies}</span></div>
-          <div class="row"><span style="color:#888">Print:</span><span>${f.colorMode === "bw" ? "B&W ₹1/pg" : "Color ₹2/pg"} | ${f.paperSize} | ${f.sided === "double" ? "Both Sides" : "Single Side"}</span></div>
+          <div class="row"><span style="color:#888">Print:</span><span>${f.colorMode === "bw" ? "B&W ₹0.75/pg" : "Color ₹2/pg"} | ${f.paperSize} | ${f.sided === "double" ? "Both Sides" : "Single Side"}</span></div>
           <div class="row"><span style="color:#888">Binding:</span><span>${f.binding}</span></div>
           <div class="row" style="margin-top:4px;padding-top:4px;border-top:1px dotted #ddd"><strong>File ${i + 1} Cost:</strong><strong style="color:#FF6B35">₹${price}</strong></div>
         </div>`;
@@ -125,7 +125,7 @@ function printInvoice(order) {
       <div style="background:#f9f9f9;border-radius:6px;padding:10px;margin:6px 0;">
         <div class="row"><strong>📄 File:</strong><span>${order.fileName}</span></div>
         <div class="row"><span style="color:#888">Pages × Copies:</span><span>${order.pages} × ${order.copies}</span></div>
-        <div class="row"><span style="color:#888">Print:</span><span>${order.colorMode === "bw" ? "B&W ₹1/pg" : "Color ₹2/pg"} | ${order.paperSize} | ${order.sided === "double" ? "Both Sides" : "Single Side"}</span></div>
+        <div class="row"><span style="color:#888">Print:</span><span>${order.colorMode === "bw" ? "B&W ₹0.75/pg" : "Color ₹2/pg"} | ${order.paperSize} | ${order.sided === "double" ? "Both Sides" : "Single Side"}</span></div>
         <div class="row"><span style="color:#888">Binding:</span><span>${order.binding}</span></div>
         <div class="row" style="margin-top:4px;padding-top:4px;border-top:1px dotted #ddd"><strong>Cost:</strong><strong style="color:#FF6B35">₹${order.price}</strong></div>
       </div>`;
@@ -319,7 +319,7 @@ function CustomerModal({ onClose }) {
 function AddOrderModal({ onClose, onRefresh }) {
   const [o, setO] = useState({ customer: "", phone: "", file: "walk-in.pdf", pages: 1, copies: 1, colorMode: "bw", paperSize: "A4", sided: "single", binding: "No Binding", address: "Walk-in pickup", price: 0, payment: "cash", notes: "" });
   const [saving, setSaving] = useState(false);
-  const ppp = o.colorMode === "bw" ? 1 : 2;
+  const ppp = o.colorMode === "bw" ? 0.75 : 2;
   const autoPrice = Math.ceil(ppp * (o.sided === "double" ? 0.7 : 1) * o.pages * o.copies);
 
   const submit = async () => {
@@ -341,7 +341,7 @@ function AddOrderModal({ onClose, onRefresh }) {
         <div><label style={lbl}>FILE</label><input value={o.file} onChange={e => setO({ ...o, file: e.target.value })} style={inp} /></div>
         <div><label style={lbl}>PAGES</label><input type="number" min="1" value={o.pages} onChange={e => setO({ ...o, pages: Math.max(1, +e.target.value) })} style={inp} /></div>
         <div><label style={lbl}>COPIES</label><input type="number" min="1" value={o.copies} onChange={e => setO({ ...o, copies: Math.max(1, +e.target.value) })} style={inp} /></div>
-        <div><label style={lbl}>TYPE</label><select value={o.colorMode} onChange={e => setO({ ...o, colorMode: e.target.value })} style={inp}><option value="bw">B&W ₹1/pg</option><option value="color">Color ₹2/pg</option></select></div>
+        <div><label style={lbl}>TYPE</label><select value={o.colorMode} onChange={e => setO({ ...o, colorMode: e.target.value })} style={inp}><option value="bw">B&W ₹0.75/pg</option><option value="color">Color ₹2/pg</option></select></div>
         <div><label style={lbl}>PAYMENT</label><select value={o.payment} onChange={e => setO({ ...o, payment: e.target.value })} style={inp}><option value="cash">Cash</option><option value="upi">UPI</option></select></div>
         <div><label style={lbl}>PRICE ₹ <span style={{ color: "#bbb" }}>Auto: ₹{autoPrice}</span></label><input type="number" value={o.price || ""} onChange={e => setO({ ...o, price: +e.target.value })} style={inp} placeholder={`${autoPrice}`} /></div>
         <div style={{ gridColumn: "1/-1" }}><label style={lbl}>ADDRESS</label><input value={o.address} onChange={e => setO({ ...o, address: e.target.value })} style={inp} /></div>
