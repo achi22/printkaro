@@ -144,7 +144,7 @@ h2{text-align:center;color:#FF6B35;margin:0 0 2px;font-size:20px}
 .footer{text-align:center;color:#bbb;font-size:10px;margin-top:16px}
 </style></head><body>
 <h2>🖨️ PrintKaaro</h2>
-<p class="sub">printkaaro.in | +91 9239226708</p>
+<p class="sub">printkaaro.in | +91 XXXXXXXXXX</p>
 <div class="line"></div>
 
 <div class="section-title">Order Info</div>
@@ -173,7 +173,7 @@ ${fileRows}
 
 <div class="footer">
 <p>Thank you for choosing PrintKaaro! 🧡</p>
-<p style="font-size:9px">printkaaro.in | WhatsApp: +91 9239226708</p>
+<p style="font-size:9px">printkaaro.in | WhatsApp: +91 XXXXXXXXXX</p>
 </div>
 <script>window.onload=()=>window.print()</script>
 </body></html>`);
