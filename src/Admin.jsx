@@ -494,7 +494,7 @@ export default function AdminDashboard() {
       </div>
 
       <div style={{ background: "#fff", borderBottom: "1px solid #eee", display: "flex", padding: "0 20px" }}>
-        {[{ key: "orders", label: "📦 Orders" }, { key: "analytics", label: "📊 Analytics" }].map(t => (
+        {[{ key: "orders", label: "📦 Orders" }, { key: "analytics", label: "📊 Analytics" }, { key: "traffic", label: "🌐 Traffic" }].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{ padding: "10px 16px", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", borderBottom: `2px solid ${tab === t.key ? "#FF6B35" : "transparent"}`, color: tab === t.key ? "#FF6B35" : "#888", background: "none" }}>{t.label}</button>
         ))}
       </div>
@@ -512,6 +512,77 @@ export default function AdminDashboard() {
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 12 }}>
             <RevenueChart stats={stats} />
             <StatusBreakdown stats={stats} />
+          </div>
+        )}
+
+        {tab === "traffic" && (
+          <div>
+            <div style={{ background: "#fff", borderRadius: 12, padding: 18, border: "1px solid #eee", marginBottom: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Website Traffic</h3>
+                <a href="https://analytics.google.com" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#3b82f6", textDecoration: "none", fontWeight: 600 }}>Open Full Analytics →</a>
+              </div>
+              <p style={{ fontSize: 13, color: "#888", margin: "0 0 14px" }}>Real-time data from Google Analytics (G-1CM96Q0MEV)</p>
+              
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 16 }}>
+                <div style={{ background: "#F0F9FF", borderRadius: 10, padding: 14, textAlign: "center" }}>
+                  <div style={{ fontSize: 12, color: "#0ea5e9", fontWeight: 600, marginBottom: 4 }}>VIEW REPORTS</div>
+                  <a href="https://analytics.google.com/analytics/web/#/report-home/a000000000w000000000p000000000" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#333", textDecoration: "none", fontWeight: 600 }}>📊 Dashboard</a>
+                </div>
+                <div style={{ background: "#FFF3ED", borderRadius: 10, padding: 14, textAlign: "center" }}>
+                  <div style={{ fontSize: 12, color: "#FF6B35", fontWeight: 600, marginBottom: 4 }}>REAL-TIME</div>
+                  <a href="https://analytics.google.com/analytics/web/#/realtime/overview" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#333", textDecoration: "none", fontWeight: 600 }}>⚡ Live Users</a>
+                </div>
+                <div style={{ background: "#F0FDF4", borderRadius: 10, padding: 14, textAlign: "center" }}>
+                  <div style={{ fontSize: 12, color: "#22c55e", fontWeight: 600, marginBottom: 4 }}>AUDIENCE</div>
+                  <a href="https://analytics.google.com/analytics/web/#/report/visitors-overview" target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: "#333", textDecoration: "none", fontWeight: 600 }}>👥 Users</a>
+                </div>
+              </div>
+
+              <div style={{ background: "#f9f9f9", borderRadius: 10, padding: 16 }}>
+                <h4 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 10px" }}>Quick Stats Guide</h4>
+                <div style={{ fontSize: 13, lineHeight: 2, color: "#555" }}>
+                  <div>📈 <strong>Users</strong> — Total visitors to your site</div>
+                  <div>👁️ <strong>Page Views</strong> — Total pages viewed</div>
+                  <div>⏱️ <strong>Avg. Session</strong> — How long visitors stay</div>
+                  <div>📱 <strong>Devices</strong> — Mobile vs Desktop split</div>
+                  <div>📍 <strong>Locations</strong> — Where visitors come from</div>
+                  <div>🔗 <strong>Sources</strong> — How they found you (Google, Facebook, Direct)</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background: "#fff", borderRadius: 12, padding: 18, border: "1px solid #eee", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 12px" }}>Business Insights</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ background: "#f9f9f9", borderRadius: 8, padding: 14 }}>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>CONVERSION RATE</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#FF6B35" }}>{stats.totalOrders && stats.totalCustomers ? ((stats.totalOrders / Math.max(stats.totalCustomers, 1)) * 100).toFixed(0) : 0}%</div>
+                  <div style={{ fontSize: 11, color: "#999" }}>Orders per customer</div>
+                </div>
+                <div style={{ background: "#f9f9f9", borderRadius: 8, padding: 14 }}>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>AVG ORDER VALUE</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#22c55e" }}>₹{stats.totalOrders ? Math.round((stats.totalRevenue || 0) / stats.totalOrders) : 0}</div>
+                  <div style={{ fontSize: 11, color: "#999" }}>Per order average</div>
+                </div>
+                <div style={{ background: "#f9f9f9", borderRadius: 8, padding: 14 }}>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>PENDING RATE</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#f59e0b" }}>{stats.totalOrders ? Math.round(((stats.pendingOrders || 0) / stats.totalOrders) * 100) : 0}%</div>
+                  <div style={{ fontSize: 11, color: "#999" }}>Orders need action</div>
+                </div>
+                <div style={{ background: "#f9f9f9", borderRadius: 8, padding: 14 }}>
+                  <div style={{ fontSize: 12, color: "#888", marginBottom: 4 }}>TODAY'S REVENUE</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: "#3b82f6" }}>₹{((stats.dailyRevenue || []).find(d => d._id === new Date().toISOString().slice(0, 10))?.revenue || 0).toLocaleString("en-IN")}</div>
+                  <div style={{ fontSize: 11, color: "#999" }}>Earned today</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background: "#fff", borderRadius: 12, padding: 18, border: "1px solid #eee" }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 10px" }}>Google Search Console</h3>
+              <p style={{ fontSize: 13, color: "#888", margin: "0 0 10px" }}>Check how your site performs on Google Search</p>
+              <a href="https://search.google.com/search-console?resource_id=https://printkaaro.in" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", padding: "10px 20px", borderRadius: 8, background: "#4285F4", color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none" }}>Open Search Console →</a>
+            </div>
           </div>
         )}
 
