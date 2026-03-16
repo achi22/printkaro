@@ -19,29 +19,66 @@ function Nav({user,setPage,page,onSignOut}){const[open,setOpen]=useState(false);
 
 function AuthPage({onAuth}){const[mode,setMode]=useState("signin");const[name,setName]=useState("");const[email,setEmail]=useState("");const[phone,setPhone]=useState("");const[pw,setPw]=useState("");const[err,setErr]=useState("");const[loading,setLoading]=useState(false);const go=async()=>{setErr("");if(mode==="signup"&&!name.trim())return setErr("Enter name");if(phone.length<10)return setErr("Valid phone required");if(pw.length<4)return setErr("Min 4 char password");setLoading(true);setErr("Connecting... (first time may take 30 sec)");try{let user;if(mode==="signup"){user=await api.signup(name.trim(),phone.trim(),email.trim(),pw);}else{user=await api.signin(phone.trim(),pw);}setErr("");onAuth(user);}catch(e){const m=e.message||"";setErr(m.includes("fetch")||m.includes("Network")?"Server waking up. Try again in 30s.":m);}finally{setLoading(false);}};const I={width:"100%",padding:"10px 12px",borderRadius:8,border:"1.5px solid #ddd",fontSize:16,outline:"none",boxSizing:"border-box"};return<div style={{minHeight:"80vh",display:"flex",alignItems:"center",justifyContent:"center",padding:16,background:"linear-gradient(135deg,#FFF9F5,#FFF0E8)"}}><div style={{width:"100%",maxWidth:380,background:"#fff",borderRadius:16,padding:"28px 20px",boxShadow:"0 12px 40px rgba(255,107,53,.06)"}}><div style={{textAlign:"center",marginBottom:20}}><div style={{width:44,height:44,borderRadius:12,background:"linear-gradient(135deg,#FF6B35,#FF8C42)",display:"inline-flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:18,fontWeight:800,marginBottom:10}}>P</div><h2 style={{fontSize:20,fontWeight:700,color:"#1a1a2e",margin:0}}>{mode==="signin"?"Welcome Back":"Create Account"}</h2><p style={{fontSize:12,color:"#888",marginTop:4}}>{mode==="signin"?"Sign in to track orders":"Join PrintKaaro"}</p></div>{mode==="signup"&&<><label style={{fontSize:12,fontWeight:600,color:"#999"}}>NAME</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" style={{...I,marginBottom:10,marginTop:3}}/></>}<label style={{fontSize:12,fontWeight:600,color:"#999"}}>PHONE</label><div style={{display:"flex",border:"1.5px solid #ddd",borderRadius:8,overflow:"hidden",marginBottom:10,marginTop:3}}><span style={{padding:"10px 8px",background:"#f8f8f8",fontSize:12,color:"#666",borderRight:"1px solid #ddd",flexShrink:0}}>+91</span><input value={phone} onChange={e=>setPhone(e.target.value.replace(/\D/g,"").slice(0,10))} placeholder="9876543210" style={{flex:1,padding:"10px",border:"none",fontSize:16,outline:"none",minWidth:0}}/></div>{mode==="signup"&&<><label style={{fontSize:12,fontWeight:600,color:"#999"}}>EMAIL (optional)</label><input value={email} onChange={e=>setEmail(e.target.value)} placeholder="email@example.com" style={{...I,marginBottom:10,marginTop:3}}/></>}<label style={{fontSize:12,fontWeight:600,color:"#999"}}>PASSWORD</label><input value={pw} onChange={e=>setPw(e.target.value)} type="password" placeholder="Password" onKeyDown={e=>e.key==="Enter"&&go()} style={{...I,marginBottom:14,marginTop:3}}/>{err&&<p style={{color:loading?"#FF6B35":"#e53e3e",fontSize:11,textAlign:"center",marginBottom:8}}>{err}</p>}<button onClick={go} disabled={loading} style={{width:"100%",padding:12,borderRadius:10,border:"none",background:"linear-gradient(135deg,#FF6B35,#FF8C42)",color:"#fff",fontSize:14,fontWeight:700,cursor:loading?"wait":"pointer",opacity:loading?.7:1}}>{loading?"Connecting...":mode==="signin"?"Sign In":"Create Account"}</button><p style={{textAlign:"center",marginTop:14,fontSize:12,color:"#888"}}>{mode==="signin"?"No account? ":"Have one? "}<button onClick={()=>{setMode(mode==="signin"?"signup":"signin");setErr("");}} style={{color:"#FF6B35",fontWeight:600,border:"none",background:"none",cursor:"pointer",fontSize:12}}>{mode==="signin"?"Sign Up":"Sign In"}</button></p></div></div>;}
 
+const PHOTO_SIZES=[
+  {id:"passport",name:"Passport Size",price:3,desc:"2×2 inch (8 photos/sheet)"},
+  {id:"stamp",name:"Stamp Size",price:3,desc:"1×1 inch (16 photos/sheet)"},
+  {id:"4x6",name:"4×6 inch",price:8,desc:"Standard photo size"},
+  {id:"5x7",name:"5×7 inch",price:15,desc:"Medium frame size"},
+  {id:"8x10",name:"8×10 inch",price:30,desc:"Large frame size"},
+  {id:"a4",name:"A4 Full Page",price:20,desc:"Full A4 sheet print"},
+];
+const FRAME_OPTS=[
+  {id:"none",name:"No Frame",price:0,icon:"📷"},
+  {id:"glass",name:"Glass Frame",price:80,icon:"🖼️"},
+  {id:"empty",name:"Empty Frame",price:50,icon:"🪟"},
+];
+
 function HomePage({onProceed}){
 const[files,setFiles]=useState([]);
 const[drag,setDrag]=useState(false);
 const ref=useRef();
 
+const isImage=(f)=>/\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i.test(f.name)||f.type.startsWith("image/");
+
 const countPages=(f,cb)=>{const r=new FileReader();r.onload=e=>{const s=new TextDecoder("latin1").decode(new Uint8Array(e.target.result));const m=s.match(/\/Type\s*\/Page[^s]/g);cb(Math.max(1,m?m.length:Math.ceil(f.size/30000)||1));};r.readAsArrayBuffer(f);};
-const addFiles=(fileList)=>{Array.from(fileList).filter(f=>f.type==="application/pdf").forEach(f=>{countPages(f,pg=>{setFiles(prev=>[...prev,{file:f,pages:pg,copies:1,clr:"bw",paper:"A4",sided:"single",bind:"none"}]);});});};
+
+const addFiles=(fileList)=>{Array.from(fileList).forEach(f=>{
+  if(isImage(f)){
+    // Image file — photo printing
+    const url=URL.createObjectURL(f);
+    setFiles(prev=>[...prev,{file:f,type:"photo",preview:url,photoSize:"passport",qty:1,laminated:false,frame:"none"}]);
+  } else if(f.type==="application/pdf"){
+    // PDF file — document printing
+    countPages(f,pg=>{setFiles(prev=>[...prev,{file:f,type:"pdf",pages:pg,copies:1,clr:"bw",paper:"A4",sided:"single",bind:"none"}]);});
+  }
+});};
 const updateFile=(idx,key,val)=>setFiles(prev=>prev.map((f,i)=>i===idx?{...f,[key]:val}:f));
 const removeFile=(idx)=>setFiles(prev=>prev.filter((_,i)=>i!==idx));
 
-const calcPrice=(f)=>{const ppp=f.clr==="bw"?1:2;const sm=f.sided==="double"?0.7:1;const bo=BIND.find(b=>b.id===f.bind);const pg=parseInt(f.pages)||1;const cp=parseInt(f.copies)||1;return Math.ceil(ppp*sm*pg*cp+(bo?.price||0)*cp);};
+const calcPrice=(f)=>{
+  if(f.type==="photo"){
+    const ps=PHOTO_SIZES.find(s=>s.id===f.photoSize)||PHOTO_SIZES[0];
+    const fr=FRAME_OPTS.find(o=>o.id===f.frame)||FRAME_OPTS[0];
+    const qty=parseInt(f.qty)||1;
+    let price=ps.price*qty;
+    if(f.laminated)price+=5*qty;
+    price+=fr.price*qty;
+    return price;
+  }
+  const ppp=f.clr==="bw"?1:2;const sm=f.sided==="double"?0.7:1;const bo=BIND.find(b=>b.id===f.bind);const pg=parseInt(f.pages)||1;const cp=parseInt(f.copies)||1;return Math.ceil(ppp*sm*pg*cp+(bo?.price||0)*cp);
+};
 const totalPrice=files.reduce((s,f)=>s+calcPrice(f),0);
 const del=totalPrice>=499?0:40;
 
 return<div style={{background:"linear-gradient(180deg,#FFF9F5 0%,#FFF 40%)",minHeight:"80vh"}}>
 <div style={{textAlign:"center",padding:"28px 16px 10px"}}>
 <div style={{display:"inline-block",padding:"5px 14px",borderRadius:14,fontSize:12,fontWeight:600,background:"#FFF3ED",color:"#FF6B35",marginBottom:10}}>UPLOAD → CONFIGURE → PAY → DELIVERED</div>
-<h1 style={{fontSize:"clamp(24px,6vw,38px)",fontWeight:700,color:"#1a1a2e",margin:"0 0 8px",lineHeight:1.2,fontFamily:"'DM Serif Display',Georgia,serif"}}>Get Your Documents<br/><span style={{background:"linear-gradient(135deg,#FF6B35,#FF8C42)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Printed & Delivered</span></h1>
-<p style={{fontSize:"clamp(13px,3vw,15px)",color:"#888",maxWidth:400,margin:"0 auto"}}>Upload PDFs, choose options, pay online. Delivered to your doorstep.</p>
+<h1 style={{fontSize:"clamp(24px,6vw,38px)",fontWeight:700,color:"#1a1a2e",margin:"0 0 8px",lineHeight:1.2,fontFamily:"'DM Serif Display',Georgia,serif"}}>Documents & Photos<br/><span style={{background:"linear-gradient(135deg,#FF6B35,#FF8C42)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}}>Printed & Delivered</span></h1>
+<p style={{fontSize:"clamp(13px,3vw,15px)",color:"#888",maxWidth:400,margin:"0 auto"}}>Upload PDFs or photos, choose options, pay online.</p>
 </div>
 <div style={{maxWidth:560,margin:"0 auto",padding:"0 14px 36px"}}>
 
-{/* Pricing Cards - Always visible */}
+{/* Pricing Cards */}
 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
 <div style={{background:"#fff",borderRadius:10,padding:"12px 8px",border:"1px solid #eee",textAlign:"center"}}>
 <div style={{fontSize:24,fontWeight:800,color:"#1a1a2e"}}>₹1<span style={{fontSize:12,fontWeight:500,color:"#999"}}>/page</span></div>
@@ -52,8 +89,8 @@ return<div style={{background:"linear-gradient(180deg,#FFF9F5 0%,#FFF 40%)",minH
 <div style={{fontSize:13,fontWeight:600,color:"#555",marginTop:2}}>Color Print</div>
 </div>
 <div style={{background:"#fff",borderRadius:10,padding:"12px 8px",border:"1px solid #eee",textAlign:"center"}}>
-<div style={{fontSize:24,fontWeight:800,color:"#8b5cf6"}}>₹2<span style={{fontSize:12,fontWeight:500,color:"#999"}}>/page</span></div>
-<div style={{fontSize:13,fontWeight:600,color:"#555",marginTop:2}}>Booklet</div>
+<div style={{fontSize:24,fontWeight:800,color:"#8b5cf6"}}>₹3<span style={{fontSize:12,fontWeight:500,color:"#999"}}>/piece</span></div>
+<div style={{fontSize:13,fontWeight:600,color:"#555",marginTop:2}}>Photo Print</div>
 </div>
 </div>
 
@@ -64,32 +101,64 @@ return<div style={{background:"linear-gradient(180deg,#FFF9F5 0%,#FFF 40%)",minH
 
 {/* Upload Zone */}
 <div onClick={()=>ref.current?.click()} onDragOver={e=>{e.preventDefault();setDrag(true);}} onDragLeave={()=>setDrag(false)} onDrop={e=>{e.preventDefault();setDrag(false);addFiles(e.dataTransfer.files);}} style={{border:`2px dashed ${drag?"#FF6B35":"#ccc"}`,borderRadius:10,padding:"18px 12px",textAlign:"center",cursor:"pointer",background:drag?"#FFF8F4":"#FAFAFA",marginBottom:14}}>
-<input ref={ref} type="file" accept=".pdf" multiple style={{display:"none"}} onChange={e=>{addFiles(e.target.files);e.target.value="";}}/>
-<div style={{fontSize:28,marginBottom:4}}>📄</div>
-<p style={{fontSize:15,fontWeight:600,color:"#333",margin:0}}>{files.length>0?"+ Add more PDFs":"Drop your PDFs here"}</p>
-<p style={{fontSize:13,color:"#999",margin:"3px 0 0"}}>or tap to browse • Multiple files • Max 50MB each</p>
+<input ref={ref} type="file" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.bmp,.heic" multiple style={{display:"none"}} onChange={e=>{addFiles(e.target.files);e.target.value="";}}/>
+<div style={{fontSize:28,marginBottom:4}}>📄 📷</div>
+<p style={{fontSize:15,fontWeight:600,color:"#333",margin:0}}>{files.length>0?"+ Add more files":"Drop your PDFs or Photos here"}</p>
+<p style={{fontSize:13,color:"#999",margin:"3px 0 0"}}>PDF for documents • JPG/PNG for photos • Multiple files</p>
 </div>
 
 {/* File Cards */}
-{files.map((f,idx)=>{const price=calcPrice(f);return<div key={idx} style={{background:"#fff",borderRadius:10,padding:"14px",border:"1px solid #eee",marginBottom:10}}>
+{files.map((f,idx)=>{const price=calcPrice(f);
+
+// ── PHOTO CARD ──
+if(f.type==="photo"){const ps=PHOTO_SIZES.find(s=>s.id===f.photoSize)||PHOTO_SIZES[0];return<div key={idx} style={{background:"#fff",borderRadius:10,padding:"14px",border:"1px solid #eee",marginBottom:10}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+<div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
+{f.preview&&<img src={f.preview} style={{width:40,height:40,borderRadius:6,objectFit:"cover"}} alt=""/>}
+<div style={{minWidth:0}}><p style={{fontSize:14,fontWeight:600,color:"#333",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.file.name}</p><p style={{fontSize:12,color:"#8b5cf6",margin:0,fontWeight:600}}>📷 Photo Print</p></div></div>
+<div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}><span style={{fontSize:16,fontWeight:700,color:"#FF6B35"}}>₹{price}</span><button onClick={()=>removeFile(idx)} style={{border:"none",background:"#FEF2F2",color:"#ef4444",width:26,height:26,borderRadius:6,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div>
+</div>
+
+<div style={{marginBottom:8}}>
+<label style={{fontSize:12,fontWeight:600,color:"#999",display:"block",marginBottom:5}}>PHOTO SIZE</label>
+<div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{PHOTO_SIZES.map(s=>P(`${s.name} ₹${s.price}`,f.photoSize===s.id,()=>updateFile(idx,"photoSize",s.id)))}</div>
+<p style={{fontSize:11,color:"#999",margin:"4px 0 0"}}>{ps.desc}</p>
+</div>
+
+<div style={{display:"flex",gap:10,marginBottom:8}}>
+<Stepper value={f.qty} onChange={v=>updateFile(idx,"qty",v)} label="QUANTITY"/>
+</div>
+
+<div style={{marginBottom:8}}>
+<label style={{fontSize:12,fontWeight:600,color:"#999",display:"block",marginBottom:5}}>FINISH</label>
+<div style={{display:"flex",gap:5}}>
+{P(f.laminated?"✅ Laminated +₹5":"Laminate +₹5",f.laminated,()=>updateFile(idx,"laminated",!f.laminated))}
+</div>
+</div>
+
+<div>
+<label style={{fontSize:12,fontWeight:600,color:"#999",display:"block",marginBottom:5}}>FRAME</label>
+<div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{FRAME_OPTS.map(o=>P(`${o.icon} ${o.name}${o.price?` +₹${o.price}`:""}`,f.frame===o.id,()=>updateFile(idx,"frame",o.id)))}</div>
+</div>
+</div>;}
+
+// ── PDF CARD ──
+return<div key={idx} style={{background:"#fff",borderRadius:10,padding:"14px",border:"1px solid #eee",marginBottom:10}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
 <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}><span style={{fontSize:18}}>📄</span><div style={{minWidth:0}}><p style={{fontSize:14,fontWeight:600,color:"#333",margin:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.file.name}</p><p style={{fontSize:12,color:"#888",margin:0}}>{(f.file.size/1024).toFixed(0)}KB • {f.pages} pages</p></div></div>
 <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}><span style={{fontSize:16,fontWeight:700,color:"#FF6B35"}}>₹{price}</span><button onClick={()=>removeFile(idx)} style={{border:"none",background:"#FEF2F2",color:"#ef4444",width:26,height:26,borderRadius:6,fontSize:13,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button></div>
 </div>
 
-{/* Row 1: Color Type */}
 <div style={{marginBottom:8}}>
 <label style={{fontSize:12,fontWeight:600,color:"#999",display:"block",marginBottom:5}}>COLOUR TYPE</label>
-<div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{P("⬛ B&W ₹1/pg",f.clr==="bw",()=>updateFile(idx,"clr","bw"))}{P("🎨 Color ₹2/pg",f.clr==="color",()=>updateFile(idx,"clr","color"))}{P("📖 Booklet ₹2/pg",f.clr==="booklet",()=>updateFile(idx,"clr","booklet"))}</div>
+<div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{P("⬛ B&W ₹1/pg",f.clr==="bw",()=>updateFile(idx,"clr","bw"))}{P("🎨 Color ₹2/pg",f.clr==="color",()=>updateFile(idx,"clr","color"))}</div>
 </div>
 
-{/* Row 2: Page Size */}
 <div style={{marginBottom:8}}>
 <label style={{fontSize:12,fontWeight:600,color:"#999",display:"block",marginBottom:5}}>PAGE SIZE</label>
 <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{["A4","A3","Legal","A5"].map(s=>P(s,f.paper===s,()=>updateFile(idx,"paper",s)))}</div>
 </div>
 
-{/* Row 3: Print Side */}
 <div style={{marginBottom:8}}>
 <label style={{fontSize:12,fontWeight:600,color:"#999",display:"block",marginBottom:5}}>PRINT SIDE</label>
 <div style={{display:"flex",gap:5}}>{P("📄 Single Side",f.sided==="single",()=>updateFile(idx,"sided","single"))}{P("📄📄 Both Sides (−30%)",f.sided==="double",()=>updateFile(idx,"sided","double"))}</div>
@@ -108,14 +177,17 @@ return<div style={{background:"linear-gradient(180deg,#FFF9F5 0%,#FFF 40%)",minH
 {/* Order Summary */}
 {files.length>0&&<div style={{background:"#fff",borderRadius:10,padding:"16px 14px",border:"1px solid #eee",marginBottom:14}}>
 <h3 style={{fontSize:15,fontWeight:700,color:"#1a1a2e",margin:"0 0 10px"}}>Order Summary ({files.length} file{files.length>1?"s":""})</h3>
-{files.map((f,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#666",marginBottom:4}}><span>{f.file.name} ({f.pages}p×{f.copies}c)</span><span style={{fontWeight:600,color:"#333"}}>₹{calcPrice(f)}</span></div>)}
+{files.map((f,i)=><div key={i} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#666",marginBottom:4}}>
+<span>{f.type==="photo"?`📷 ${f.file.name} (${f.photoSize}×${f.qty||1})`:`📄 ${f.file.name} (${f.pages}p×${f.copies}c)`}</span>
+<span style={{fontWeight:600,color:"#333"}}>₹{calcPrice(f)}</span>
+</div>)}
 <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#666",marginBottom:4,marginTop:6,paddingTop:6,borderTop:"1px solid #f0f0f0"}}><span>Delivery</span><span style={{fontWeight:600,color:del===0?"#16a34a":"#333"}}>{del===0?"FREE":"₹40"}</span></div>
 {del===0&&<p style={{fontSize:11,color:"#16a34a",margin:"0 0 4px"}}>🎉 Free delivery on orders ₹499+</p>}
 <div style={{borderTop:"2px solid #FF6B35",paddingTop:10,marginTop:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:15,fontWeight:700}}>Total</span><span style={{fontSize:22,fontWeight:800,color:"#FF6B35"}}>₹{totalPrice+del}</span></div>
-<button onClick={()=>{if(files.length===0)return;const names=files.map(f=>f.file.name).join(", ");const totalPages=files.reduce((s,f)=>s+(parseInt(f.pages)||1)*(parseInt(f.copies)||1),0);onProceed({file:names,files:files.map(f=>({name:f.file.name,pages:parseInt(f.pages)||1,copies:parseInt(f.copies)||1,colorMode:f.clr,paperSize:f.paper,sided:f.sided,binding:BIND.find(b=>b.id===f.bind)?.name||"No Binding"})),pages:totalPages,copies:1,colorMode:files[0].clr,paperSize:files[0].paper,sided:files[0].sided,binding:files[0].bind,price:totalPrice},files.map(f=>f.file));}} style={{width:"100%",padding:13,borderRadius:10,border:"none",marginTop:10,background:"linear-gradient(135deg,#FF6B35,#FF8C42)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer"}}>Proceed to Checkout →</button>
+<button onClick={()=>{if(files.length===0)return;const names=files.map(f=>f.file.name).join(", ");const totalPages=files.reduce((s,f)=>f.type==="pdf"?(s+(parseInt(f.pages)||1)*(parseInt(f.copies)||1)):(s+(parseInt(f.qty)||1)),0);onProceed({file:names,files:files.map(f=>f.type==="photo"?{name:f.file.name,type:"photo",photoSize:f.photoSize,qty:parseInt(f.qty)||1,laminated:f.laminated,frame:FRAME_OPTS.find(o=>o.id===f.frame)?.name||"No Frame",copies:parseInt(f.qty)||1,pages:1,colorMode:"color",paperSize:f.photoSize,sided:"single",binding:"No Binding"}:{name:f.file.name,type:"pdf",pages:parseInt(f.pages)||1,copies:parseInt(f.copies)||1,colorMode:f.clr,paperSize:f.paper,sided:f.sided,binding:BIND.find(b=>b.id===f.bind)?.name||"No Binding"}),pages:totalPages,copies:1,colorMode:files[0].clr||"color",paperSize:files[0].paper||"A4",sided:files[0].sided||"single",binding:files[0].bind||"none",price:totalPrice},files.map(f=>f.file));}} style={{width:"100%",padding:13,borderRadius:10,border:"none",marginTop:10,background:"linear-gradient(135deg,#FF6B35,#FF8C42)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer"}}>Proceed to Checkout →</button>
 </div>}
 
-{files.length===0&&<div style={{background:"#fff",borderRadius:10,padding:"16px 14px",border:"1px solid #eee",marginBottom:14,textAlign:"center"}}><span style={{fontSize:24}}>📄</span><p style={{fontSize:13,color:"#ccc",margin:"4px 0 0"}}>Upload PDFs to see pricing</p></div>}
+{files.length===0&&<div style={{background:"#fff",borderRadius:10,padding:"16px 14px",border:"1px solid #eee",marginBottom:14,textAlign:"center"}}><span style={{fontSize:24}}>📄 📷</span><p style={{fontSize:13,color:"#ccc",margin:"4px 0 0"}}>Upload PDFs or photos to see pricing</p></div>}
 
 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6}}>{[{i:"⚡",t:"24hr Turnaround"},{i:"🔒",t:"Secure Files"},{i:"📱",t:"UPI Payment"},{i:"🚚",t:"Free Delivery 499+"}].map(x=><div key={x.t} style={{background:"#fff",borderRadius:8,padding:"8px 10px",border:"1px solid #f0f0f0",display:"flex",alignItems:"center",gap:6}}><span style={{fontSize:14}}>{x.i}</span><span style={{fontSize:11,color:"#888",fontWeight:500}}>{x.t}</span></div>)}</div>
 </div></div>;}
@@ -230,7 +302,7 @@ return<div style={{maxWidth:520,margin:"0 auto",padding:"24px 14px"}}><h2 style=
 
 function AccountPage({user,setPage,onSignOut}){if(!user)return<div style={{maxWidth:380,margin:"0 auto",padding:"50px 16px",textAlign:"center"}}><div style={{fontSize:36}}>👤</div><h2 style={{fontSize:20,fontWeight:700,margin:"8px 0 6px"}}>Sign in to view account</h2><button onClick={()=>setPage("signin")} style={{padding:"11px 24px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#FF6B35,#FF8C42)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer",marginTop:10}}>Sign In</button></div>;return<div style={{maxWidth:480,margin:"0 auto",padding:"24px 14px"}}><h2 style={{fontSize:22,fontWeight:700,margin:"0 0 16px",fontFamily:"'DM Serif Display',Georgia,serif"}}>My Account</h2><div style={{background:"#fff",borderRadius:10,padding:18,border:"1px solid #eee",marginBottom:12}}><div style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}><div style={{width:44,height:44,borderRadius:"50%",background:"linear-gradient(135deg,#FF6B35,#FF8C42)",display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:18,fontWeight:700,flexShrink:0}}>{user.name[0].toUpperCase()}</div><div><div style={{fontSize:17,fontWeight:700}}>{user.name}</div><div style={{fontSize:13,color:"#888"}}>📱 +91 {user.phone}</div></div></div><button onClick={()=>setPage("orders")} style={{width:"100%",padding:10,borderRadius:6,border:"1.5px solid #ddd",background:"#fff",fontSize:14,fontWeight:600,cursor:"pointer"}}>📦 View Orders</button></div><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee",marginBottom:12}}><h3 style={{fontSize:15,fontWeight:700,margin:"0 0 10px"}}>Saved Addresses ({api.getSavedAddresses().length})</h3>{api.getSavedAddresses().length===0?<p style={{fontSize:13,color:"#999"}}>No saved addresses yet</p>:api.getSavedAddresses().map((a,i)=><div key={i} style={{padding:10,background:"#f9f9f9",borderRadius:6,marginBottom:5,fontSize:13}}><span style={{fontWeight:600}}>{a.name}</span> — {a.address}, {a.city} - {a.pincode}</div>)}</div><button onClick={onSignOut} style={{width:"100%",padding:12,borderRadius:8,border:"1.5px solid #ef4444",background:"#fff",color:"#ef4444",fontSize:14,fontWeight:600,cursor:"pointer"}}>Sign Out</button></div>;}
 
-function AboutPage(){return<div style={{maxWidth:520,margin:"0 auto",padding:"24px 14px"}}><h2 style={{fontSize:22,fontWeight:700,margin:"0 0 6px",fontFamily:"'DM Serif Display',Georgia,serif"}}>About PrintKaaro</h2><p style={{fontSize:14,color:"#888",marginBottom:14}}>Your online print partner</p><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee",marginBottom:12}}><p style={{fontSize:14,color:"#555",lineHeight:1.7,margin:0}}>PrintKaaro makes printing easy. B&W, color, booklets, binding — delivered to your doorstep in West Bengal. Double-sided printing starts at just ₹0.70/page!</p></div><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee"}}><h3 style={{fontSize:15,fontWeight:700,color:"#FF6B35",margin:"0 0 10px"}}>Why Us?</h3>{[{i:"⚡",t:"Fast — 24hr printing"},{i:"💰",t:"Affordable — B&W ₹1/pg, Color ₹2/pg"},{i:"📄",t:"Both sides — just ₹0.70/page!"},{i:"🔒",t:"Secure files"},{i:"🚚",t:"Free delivery — first order + ₹499+"}].map((x,i)=><div key={i} style={{display:"flex",gap:10,marginBottom:10}}><span style={{fontSize:16}}>{x.i}</span><span style={{fontSize:14,color:"#444"}}>{x.t}</span></div>)}</div></div>;}
+function AboutPage(){return<div style={{maxWidth:520,margin:"0 auto",padding:"24px 14px"}}><h2 style={{fontSize:22,fontWeight:700,margin:"0 0 6px",fontFamily:"'DM Serif Display',Georgia,serif"}}>About PrintKaaro</h2><p style={{fontSize:14,color:"#888",marginBottom:14}}>Your online print partner</p><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee",marginBottom:12}}><p style={{fontSize:14,color:"#555",lineHeight:1.7,margin:0}}>PrintKaaro makes printing easy. Documents, photos, booklets, binding — delivered to your doorstep in West Bengal. Double-sided printing starts at just ₹0.70/page!</p></div><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee"}}><h3 style={{fontSize:15,fontWeight:700,color:"#FF6B35",margin:"0 0 10px"}}>Why Us?</h3>{[{i:"⚡",t:"Fast — 24hr printing"},{i:"💰",t:"B&W ₹1/pg, Color ₹2/pg, Photo ₹3/pc"},{i:"📄",t:"Both sides — just ₹0.70/page!"},{i:"📷",t:"Photo printing with frame & lamination"},{i:"🔒",t:"Secure files"},{i:"🚚",t:"Free delivery — first order + ₹499+"}].map((x,i)=><div key={i} style={{display:"flex",gap:10,marginBottom:10}}><span style={{fontSize:16}}>{x.i}</span><span style={{fontSize:14,color:"#444"}}>{x.t}</span></div>)}</div></div>;}
 
 function ContactPage(){const[sent,setSent]=useState(false);const I={width:"100%",padding:"12px 14px",borderRadius:8,border:"1.5px solid #ddd",fontSize:16,outline:"none",boxSizing:"border-box"};return<div style={{maxWidth:480,margin:"0 auto",padding:"24px 14px"}}><h2 style={{fontSize:22,fontWeight:700,margin:"0 0 6px",fontFamily:"'DM Serif Display',Georgia,serif"}}>Contact Us</h2><p style={{fontSize:14,color:"#888",marginBottom:14}}>We'd love to hear from you</p><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:14}}>{[{i:"💬",l:"WhatsApp",c:"#25D366",h:"https://wa.me/91XXXXXXXXXX"},{i:"📞",l:"Call",c:"#3b82f6",h:"tel:+91XXXXXXXXXX"},{i:"✉️",l:"Email",c:"#FF6B35",h:"mailto:hello@printkaaro.in"},{i:"📍",l:"Balurghat",c:"#333"}].map((x,idx)=>x.h?<a key={idx} href={x.h} target="_blank" rel="noopener noreferrer" style={{padding:14,background:"#fff",borderRadius:10,border:"1px solid #eee",textAlign:"center",textDecoration:"none"}}><div style={{fontSize:22,marginBottom:2}}>{x.i}</div><div style={{fontSize:13,fontWeight:600,color:x.c}}>{x.l}</div></a>:<div key={idx} style={{padding:14,background:"#fff",borderRadius:10,border:"1px solid #eee",textAlign:"center"}}><div style={{fontSize:22,marginBottom:2}}>{x.i}</div><div style={{fontSize:13,fontWeight:600,color:x.c}}>{x.l}</div></div>)}</div><div style={{background:"#fff",borderRadius:10,padding:16,border:"1px solid #eee"}}><h3 style={{fontSize:15,fontWeight:700,margin:"0 0 10px"}}>Send message</h3>{sent?<div style={{textAlign:"center",padding:12}}><span style={{fontSize:28}}>✅</span><p style={{fontSize:14,fontWeight:600,color:"#16a34a",margin:"6px 0 0"}}>Sent! We'll reply soon.</p></div>:<><input placeholder="Name" style={{...I,marginBottom:8}}/><input placeholder="Phone or email" style={{...I,marginBottom:8}}/><textarea rows={3} placeholder="Message" style={{...I,resize:"none",marginBottom:10}}/><button onClick={()=>setSent(true)} style={{width:"100%",padding:12,borderRadius:8,border:"none",background:"linear-gradient(135deg,#FF6B35,#FF8C42)",color:"#fff",fontSize:15,fontWeight:700,cursor:"pointer"}}>Send</button></>}</div></div>;}
 
