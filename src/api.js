@@ -141,6 +141,16 @@ export async function deleteOrder(id) { return api(`/api/admin/orders/${id}`, { 
 export async function cleanupOldOrders() { return api("/api/admin/orders-cleanup", { method: "DELETE", headers: ah() }); }
 export function getAdminPdfUrl(orderId) { return `${API_URL}/api/orders/${orderId}/file?adminpass=${adminPassword}`; }
 
+// ── COUPONS ──
+export async function validateCoupon(code, price) { return api("/api/orders/validate-coupon", { method: "POST", body: JSON.stringify({ code, price }) }); }
+export async function checkFirstOrder() { return api("/api/orders/check-first-order"); }
+
+// ── ADMIN COUPONS ──
+export async function getCoupons() { return api("/api/admin/coupons", { headers: ah() }); }
+export async function createCoupon(d) { return api("/api/admin/coupons", { method: "POST", body: JSON.stringify(d), headers: ah() }); }
+export async function updateCoupon(id, d) { return api(`/api/admin/coupons/${id}`, { method: "PATCH", body: JSON.stringify(d), headers: ah() }); }
+export async function deleteCoupon(id) { return api(`/api/admin/coupons/${id}`, { method: "DELETE", headers: ah() }); }
+
 // ── SHIPROCKET ──
 export async function srCreateShipment(orderId) { return api("/api/admin/shiprocket/ship", { method: "POST", body: JSON.stringify({ orderId }), headers: ah() }); }
 export async function srGetCouriers(shipmentId, orderId) { return api("/api/admin/shiprocket/couriers", { method: "POST", body: JSON.stringify({ shipmentId, orderId }), headers: ah() }); }
