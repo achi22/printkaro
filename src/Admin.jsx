@@ -405,6 +405,9 @@ export default function AdminDashboard() {
         api.getAdminOrders({ status: filter === "all" ? "" : filter, search }),
         api.getAdminStats()
       ]);
+      // Fetch visit stats
+      let visitStats = {};
+      try { const vr = await fetch(api.API_URL + "/api/visits"); visitStats = await vr.json(); } catch(e) {}
       const newOrders = ordersData.orders || [];
       const newTotal = statsData.totalOrders || 0;
       
@@ -426,7 +429,7 @@ export default function AdminDashboard() {
       
       prevCountRef.current = newTotal;
       setOrders(newOrders);
-      setStats(statsData);
+      setStats({...statsData, ...visitStats});
     } catch (e) { console.error("Fetch error:", e); }
     if (!silent) setLoading(false);
   };
@@ -506,6 +509,8 @@ export default function AdminDashboard() {
           <StatCard icon="⏳" label="PENDING" value={stats.pendingOrders || 0} color="#f59e0b" />
           <StatCard icon="👥" label="CUSTOMERS" value={stats.totalCustomers || 0} color="#0ea5e9" onClick={() => setShowCustomers(true)} />
           <StatCard icon="💰" label="REVENUE" value={`₹${(stats.totalRevenue || 0).toLocaleString("en-IN")}`} color="#22c55e" />
+          <StatCard icon="👁️" label="VISITS TODAY" value={stats.todayVisits || 0} sub={`${stats.todayUnique || 0} unique`} color="#ec4899" />
+          <StatCard icon="🌐" label="TOTAL VISITS" value={stats.totalVisits || 0} sub={`${stats.totalUnique || 0} unique`} color="#6366f1" />
         </div>
 
         {tab === "analytics" && (
@@ -517,6 +522,26 @@ export default function AdminDashboard() {
 
         {tab === "traffic" && (
           <div>
+            {/* Visitor Chart */}
+            <div style={{ background: "#fff", borderRadius: 12, padding: 18, border: "1px solid #eee", marginBottom: 14 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: "0 0 14px" }}>Visitors (Last 7 Days)</h3>
+              <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 120 }}>
+                {(stats.daily || []).length === 0 ? <p style={{ color: "#ccc", fontSize: 12, margin: "auto" }}>No data yet — visits will show after people visit your site</p> :
+                  (stats.daily || []).reverse().map(d => {
+                    const maxV = Math.max(...(stats.daily || []).map(x => x.visits), 1);
+                    const h = Math.max((d.visits / maxV) * 100, 6);
+                    return (
+                      <div key={d.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: "#6366f1" }}>{d.visits}</span>
+                        <div style={{ width: "100%", height: h, borderRadius: "4px 4px 2px 2px", background: "linear-gradient(180deg, #6366f1, #8b5cf6)" }} />
+                        <span style={{ fontSize: 9, color: "#999" }}>{d.date?.slice(5)}</span>
+                        <span style={{ fontSize: 8, color: "#bbb" }}>{d.unique}u</span>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
             <div style={{ background: "#fff", borderRadius: 12, padding: 18, border: "1px solid #eee", marginBottom: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
                 <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Website Traffic</h3>

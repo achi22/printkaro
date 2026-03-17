@@ -312,7 +312,11 @@ function ContactPage(){const[sent,setSent]=useState(false);const I={width:"100%"
 
 export default function App(){const[page,setPage]=useState("home");const[user,setUser]=useState(null);const[order,setOrder]=useState(null);const[address,setAddress]=useState(null);const[pend,setPend]=useState(null);const[fileObj,setFileObj]=useState(null);
 
-useEffect(()=>{if(api.isLoggedIn()){api.getProfile().then(u=>setUser(u)).catch(()=>api.signout());}},[]);
+useEffect(()=>{
+  if(api.isLoggedIn()){api.getProfile().then(u=>setUser(u)).catch(()=>api.signout());}
+  // Track visit
+  try{fetch(api.API_URL+"/api/visit",{method:"POST",headers:{"Content-Type":"application/json"}});}catch(e){}
+},[]);
 
 const proceed=(d,fileOrFiles)=>{
   // fileOrFiles can be array of File objects for multi-upload
