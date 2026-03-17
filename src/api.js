@@ -28,12 +28,76 @@ export async function signin(phone, password) {
 export async function getProfile() { return (await api("/api/auth/me")).user; }
 
 // ── ORDERS ──
-export async function uploadPDF(file) {
-  const fd = new FormData(); fd.append("file", file);
-  const res = await fetch(`${API_URL}/api/orders/upload`, { method: "POST", headers: { Authorization: `Bearer ${authToken}` }, body: fd });
-  if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Upload failed"); }
-  return res.json();
+const CHUNK_SIZE = 8 * 1024 * 1024; // 8MB chunks
+
+export async function uploadPDF(file, onProgress) {
+  // Small files (<8MB) — single upload with progress
+  if (file.size <= CHUNK_SIZE) {
+    if (onProgress) onProgress(10);
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_URL}/api/orders/upload`);
+      xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) {
+          onProgress(Math.round((e.loaded / e.total) * 90) + 5);
+        }
+      };
+      xhr.onload = () => {
+        if (onProgress) onProgress(100);
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try { resolve(JSON.parse(xhr.responseText)); } catch { reject(new Error("Invalid response")); }
+        } else {
+          try { const e = JSON.parse(xhr.responseText); reject(new Error(e.error || "Upload failed")); } catch { reject(new Error("Upload failed")); }
+        }
+      };
+      xhr.onerror = () => reject(new Error("Network error — check your internet"));
+      xhr.ontimeout = () => reject(new Error("Upload timed out"));
+      xhr.timeout = 5 * 60 * 1000; // 5 min
+      const fd = new FormData(); fd.append("file", file);
+      xhr.send(fd);
+    });
+  }
+
+  // Large files — chunked upload
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  const uploadId = Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, file.size);
+    const chunk = file.slice(start, end);
+
+    const fd = new FormData();
+    fd.append("chunk", chunk);
+    fd.append("uploadId", uploadId);
+    fd.append("chunkIndex", i);
+    fd.append("totalChunks", totalChunks);
+    fd.append("fileName", file.name);
+    fd.append("mimeType", file.type);
+    fd.append("fileSize", file.size);
+
+    const res = await fetch(`${API_URL}/api/orders/upload-chunk`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${authToken}` },
+      body: fd,
+    });
+
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || `Chunk ${i + 1}/${totalChunks} failed`);
+    }
+
+    const data = await res.json();
+    if (onProgress) onProgress(Math.round(((i + 1) / totalChunks) * 100));
+
+    // Last chunk returns the file info
+    if (data.filePath) return data;
+  }
+
+  throw new Error("Upload completed but no file ID returned");
 }
+
 export async function createOrder(d) { return (await api("/api/orders", { method: "POST", body: JSON.stringify(d) })).order; }
 export async function getMyOrders() { return (await api("/api/orders/my")).orders; }
 export async function getOrder(id) { return (await api(`/api/orders/${id}`)).order; }

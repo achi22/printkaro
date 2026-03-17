@@ -331,9 +331,10 @@ const authAndProceed=u=>{setUser(u);if(pend){setOrder(pend);setPend(null);setPag
 
 const[orderLoading,setOrderLoading]=useState(false);
 const[orderMsg,setOrderMsg]=useState("");
+const[uploadPct,setUploadPct]=useState(0);
 
 const handlePay=async(paymentMethod)=>{
-  setOrderLoading(true);setOrderMsg("Connecting to server...");
+  setOrderLoading(true);setOrderMsg("Uploading your files...");setUploadPct(0);
   
   const tryOrder=async(attempt)=>{
     try{
@@ -343,7 +344,9 @@ const handlePay=async(paymentMethod)=>{
       if(fileObj&&fileObj.length>0){
         for(let i=0;i<fileObj.length;i++){
           const f=fileObj[i];
-          setOrderMsg(`Uploading file ${i+1}/${fileObj.length}: ${f.name} (${(f.size/(1024*1024)).toFixed(1)}MB)...`);
+          const sizeMB=(f.size/(1024*1024)).toFixed(1);
+          setOrderMsg(`Uploading ${f.name} (${sizeMB} MB)`);
+          setUploadPct(0);
           
           // Check file size before upload (200MB limit)
           if(f.size>MAX_FILE_MB*1024*1024){
@@ -353,7 +356,8 @@ const handlePay=async(paymentMethod)=>{
           
           try{
             const up=await api.uploadPDF(f,(pct)=>{
-              setOrderMsg(`Uploading file ${i+1}/${fileObj.length}: ${f.name} — ${pct}%`);
+              setUploadPct(pct);
+              setOrderMsg(`Uploading ${f.name} — ${pct}%`);
             });
             if(up.filePath) filePaths.push(up.filePath);
             else failedFiles.push(f.name);
@@ -377,7 +381,7 @@ const handlePay=async(paymentMethod)=>{
         return;
       }
       
-      setOrderMsg("Creating your order...");
+      setOrderMsg("Placing your order...");setUploadPct(100);
       const pm=paymentMethod||"upi";
       const created=await api.createOrder({fileName:order.file,filePath:filePaths.join(","),fileSize:0,pages:order.pages,copies:order.copies,colorMode:order.colorMode,paperSize:order.paperSize,sided:order.sided,binding:order.binding,notes:order.files?JSON.stringify(order.files):"",price:order.price,deliveryAddress:address,paymentMethod:pm==="cod"?"cash":pm});
       const msg=encodeURIComponent(`🆕 New Order!\n📋 ${created.orderId||"Order"}\n👤 ${address.name} (${address.phone})\n📄 ${order.file}\n💰 ₹${created.totalPrice||order.price} (${pm==="cod"?"COD":pm})\n📍 ${address.city} - ${address.pincode}`);
@@ -386,7 +390,7 @@ const handlePay=async(paymentMethod)=>{
       setPage("status");
     }catch(e){
       if(attempt<3&&(e.message.includes("fetch")||e.message.includes("Network")||e.message.includes("Failed"))){
-        setOrderMsg(`Server is waking up... Retrying (${attempt}/3)`);
+        setOrderMsg(`Server is waking up... Retry ${attempt}/3`);setUploadPct(0);
         await new Promise(r=>setTimeout(r,5000));
         return tryOrder(attempt+1);
       }
@@ -401,11 +405,17 @@ const handlePay=async(paymentMethod)=>{
 };
 
 return<div style={{minHeight:"100vh",background:"#FAFAFA",fontFamily:"'DM Sans','Segoe UI',sans-serif",overflowX:"hidden",maxWidth:"100vw"}}>
-{orderLoading&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
-<div style={{width:56,height:56,borderRadius:"50%",border:"4px solid #FF6B3530",borderTopColor:"#FF6B35",animation:"spin 1s linear infinite"}}/>
-<style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-<p style={{color:"#fff",fontSize:16,fontWeight:600,textAlign:"center",maxWidth:280}}>{orderMsg}</p>
-<p style={{color:"#bbb",fontSize:12,textAlign:"center"}}>Please don't close this page</p>
+{orderLoading&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center"}}>
+<div style={{background:"#fff",borderRadius:16,padding:"28px 24px",maxWidth:340,width:"90%",textAlign:"center"}}>
+<div style={{fontSize:36,marginBottom:10}}>{uploadPct>=100?"✅":"📄"}</div>
+<p style={{fontSize:15,fontWeight:700,color:"#1a1a2e",margin:"0 0 4px"}}>{uploadPct>=100?"Placing Order...":"Uploading PDF..."}</p>
+<p style={{fontSize:12,color:"#888",margin:"0 0 16px",wordBreak:"break-all"}}>{orderMsg}</p>
+<div style={{background:"#f0f0f0",borderRadius:20,height:22,overflow:"hidden",position:"relative"}}>
+<div style={{background:"linear-gradient(90deg,#FF6B35,#FF8C42)",height:"100%",borderRadius:20,transition:"width 0.3s ease",width:`${uploadPct}%`,minWidth:uploadPct>0?"30px":"0"}}/>
+<span style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,color:uploadPct>45?"#fff":"#666"}}>{uploadPct}%</span>
+</div>
+<p style={{fontSize:11,color:"#bbb",marginTop:12}}>Please don't close this page</p>
+</div>
 </div>}
 <Nav user={user} setPage={setPage} page={page} onSignOut={out}/>
 {page==="home"&&<HomePage onProceed={proceed}/>}
