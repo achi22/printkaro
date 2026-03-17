@@ -185,15 +185,26 @@ ${fileRows}
 function CouponManager() {
   const [coupons, setCoupons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [editing, setEditing] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const empty = { code: "", type: "flat", value: 0, maxDiscount: 499, minOrder: 0, description: "", usageLimit: 0, expiresAt: "", active: true };
-  const [form, setForm] = useState(empty);
+  const [form, setForm] = useState({ ...empty });
 
-  const load = () => { api.getCoupons().then(r => setCoupons(r.coupons || [])).catch(() => {}).finally(() => setLoading(false)); };
-  useEffect(load, []);
+  const load = async () => {
+    setLoading(true); setError("");
+    try {
+      const r = await api.getCoupons();
+      setCoupons(r.coupons || []);
+    } catch (e) {
+      setError(e.message || "Failed to load coupons");
+      setCoupons([]);
+    }
+    setLoading(false);
+  };
+  useEffect(() => { load(); }, []);
 
   const save = async () => {
     if (!form.code) return alert("Code required");
@@ -201,23 +212,23 @@ function CouponManager() {
     try {
       if (editing) { await api.updateCoupon(editing, form); }
       else { await api.createCoupon(form); }
-      load(); setShowAdd(false); setEditing(null); setForm(empty);
+      await load(); setShowAdd(false); setEditing(null); setForm({ ...empty });
     } catch (e) { alert(e.message); }
     setSaving(false);
   };
 
   const del = async (id) => {
     if (!confirm("Delete this coupon?")) return;
-    try { await api.deleteCoupon(id); load(); } catch (e) { alert(e.message); }
+    try { await api.deleteCoupon(id); await load(); } catch (e) { alert(e.message); }
   };
 
   const edit = (c) => {
-    setForm({ code: c.code, type: c.type, value: c.value, maxDiscount: c.maxDiscount, minOrder: c.minOrder, description: c.description, usageLimit: c.usageLimit, expiresAt: c.expiresAt ? c.expiresAt.slice(0, 10) : "", active: c.active });
+    setForm({ code: c.code, type: c.type, value: c.value || 0, maxDiscount: c.maxDiscount || 499, minOrder: c.minOrder || 0, description: c.description || "", usageLimit: c.usageLimit || 0, expiresAt: c.expiresAt ? c.expiresAt.slice(0, 10) : "", active: c.active !== false });
     setEditing(c._id); setShowAdd(true);
   };
 
   const toggle = async (c) => {
-    try { await api.updateCoupon(c._id, { active: !c.active }); load(); } catch (e) { alert(e.message); }
+    try { await api.updateCoupon(c._id, { active: !c.active }); await load(); } catch (e) { alert(e.message); }
   };
 
   const typeInfo = { flat: "₹ off", percent: "% off", firstorder: "First Order FREE" };
@@ -279,7 +290,8 @@ function CouponManager() {
       )}
 
       {/* Coupon List */}
-      {loading ? <p style={{ color: "#999", textAlign: "center", padding: 20 }}>Loading...</p> :
+      {error && <div style={{ background: "#FEF2F2", borderRadius: 10, padding: 14, border: "1px solid #FECACA", marginBottom: 12, fontSize: 13, color: "#ef4444" }}>❌ {error} <button onClick={load} style={{ marginLeft: 8, border: "none", background: "#ef4444", color: "#fff", borderRadius: 6, padding: "4px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Retry</button></div>}
+      {loading ? <p style={{ color: "#999", textAlign: "center", padding: 20 }}>Loading coupons...</p> :
         coupons.length === 0 ? (
           <div style={{ background: "#fff", borderRadius: 12, padding: 30, border: "1px solid #eee", textAlign: "center" }}>
             <div style={{ fontSize: 36, marginBottom: 8 }}>🏷️</div>
