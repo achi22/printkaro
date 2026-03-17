@@ -38,6 +38,7 @@ const MAX_FILE_MB=200;
 function HomePage({onProceed}){
 const[files,setFiles]=useState([]);
 const[drag,setDrag]=useState(false);
+const[copied,setCopied]=useState(false);
 const ref=useRef();
 
 const isImage=(f)=>/\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i.test(f.name)||f.type.startsWith("image/");
@@ -83,13 +84,21 @@ return<div style={{background:"linear-gradient(180deg,#FFF9F5 0%,#FFF 40%)",minH
 </div>
 <div style={{maxWidth:560,margin:"0 auto",padding:"0 14px 36px"}}>
 
-{/* First Order FREE Banner */}
-<div style={{background:"linear-gradient(135deg,#FF6B35,#FF8C42)",borderRadius:12,padding:"14px 16px",marginBottom:14,textAlign:"center",position:"relative",overflow:"hidden"}}>
+{/* First Order FREE Banner + Coupon */}
+<div style={{background:"linear-gradient(135deg,#FF6B35,#FF8C42)",borderRadius:12,padding:"14px 16px",marginBottom:14,position:"relative",overflow:"hidden"}}>
 <div style={{position:"absolute",top:-10,right:-10,width:60,height:60,borderRadius:"50%",background:"rgba(255,255,255,0.15)"}}/>
-<div style={{position:"absolute",bottom:-15,left:20,width:40,height:40,borderRadius:"50%",background:"rgba(255,255,255,0.1)"}}/>
+<div style={{textAlign:"center",marginBottom:10}}>
 <div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.85)",letterSpacing:1,marginBottom:4}}>🎉 LIMITED TIME OFFER</div>
 <div style={{fontSize:20,fontWeight:800,color:"#fff",marginBottom:2}}>First Order FREE</div>
 <div style={{fontSize:13,color:"rgba(255,255,255,0.9)"}}>up to ₹499 • Free delivery included</div>
+</div>
+<div style={{background:"rgba(255,255,255,0.15)",borderRadius:8,padding:"8px 10px",display:"flex",alignItems:"center",gap:6}}>
+<span style={{fontSize:11,color:"rgba(255,255,255,0.8)",whiteSpace:"nowrap"}}>COUPON:</span>
+<div onClick={()=>{navigator.clipboard.writeText("FIRSTORDER");setCopied(true);setTimeout(()=>setCopied(false),2000);}} style={{flex:1,background:"rgba(255,255,255,0.95)",borderRadius:6,padding:"6px 10px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
+<span style={{fontFamily:"monospace",fontWeight:800,fontSize:15,color:"#FF6B35",letterSpacing:1}}>FIRSTORDER</span>
+<span style={{fontSize:11,color:copied?"#22c55e":"#888",fontWeight:600}}>{copied?"Copied ✓":"Tap to copy"}</span>
+</div>
+</div>
 </div>
 
 {/* Pricing Cards */}
@@ -243,16 +252,101 @@ return<div style={{maxWidth:500,margin:"0 auto",padding:"24px 14px"}}><button on
 <button onClick={()=>ok&&confirm({name:n,phone:ph,address:ad,city:ci,pincode:pin})} disabled={!ok} style={{width:"100%",padding:11,borderRadius:8,border:"none",marginTop:10,background:ok?"linear-gradient(135deg,#FF6B35,#FF8C42)":"#ddd",color:ok?"#fff":"#999",fontSize:14,fontWeight:700,cursor:ok?"pointer":"not-allowed"}}>Proceed to Payment →</button></>}
 </div>;}
 
-function PaymentPage({order,onPay,onBack}){const[m,setM]=useState("upi");const[loading,setLoading]=useState(false);const[upiDone,setUpiDone]=useState(false);const d=order.price>=499?0:40;const total=order.price+d;const methods=[{id:"upi",i:"📱",l:"UPI (GPay / PhonePe)",s:"Instant payment"},{id:"cod",i:"🚚",l:"Cash on Delivery",s:"Pay when you receive"}];const btnBg=m==="upi"?"linear-gradient(135deg,#059669,#10b981)":"linear-gradient(135deg,#f59e0b,#eab308)";
+function PaymentPage({order,onPay,onBack,user}){
+const[m,setM]=useState("upi");const[loading,setLoading]=useState(false);const[upiDone,setUpiDone]=useState(false);
+const[coupon,setCoupon]=useState("");const[couponInput,setCouponInput]=useState("");const[couponDiscount,setCouponDiscount]=useState(0);const[couponMsg,setCouponMsg]=useState("");const[couponApplied,setCouponApplied]=useState(false);const[couponLoading,setCouponLoading]=useState(false);
+const[checkedFirst,setCheckedFirst]=useState(false);
+
+const basePrice=order.price;
+const del=(basePrice-couponDiscount)>=499||couponDiscount>=basePrice?0:40;
+const total=Math.max(0,basePrice-couponDiscount)+del;
+const isFree=total===0;
+
+// Auto-check first order on mount
+useEffect(()=>{
+  if(!checkedFirst&&user){
+    setCheckedFirst(true);
+    api.checkFirstOrder().then(r=>{
+      if(r.isFirstOrder&&r.coupon){
+        // Auto-apply first order coupon
+        setCouponInput(r.coupon.code);
+        applyCoupon(r.coupon.code);
+      }
+    }).catch(()=>{});
+  }
+},[user]);
+
+const applyCoupon=async(codeOverride)=>{
+  const code=codeOverride||couponInput.trim();
+  if(!code){setCouponMsg("Enter a coupon code");return;}
+  setCouponLoading(true);setCouponMsg("");
+  try{
+    const r=await api.validateCoupon(code,basePrice);
+    setCouponDiscount(r.discount);
+    setCoupon(r.code);
+    setCouponApplied(true);
+    setCouponMsg(`✅ ${r.code}: ₹${r.discount} off!`);
+    setCouponInput(r.code);
+  }catch(e){
+    setCouponDiscount(0);setCoupon("");setCouponApplied(false);
+    setCouponMsg("❌ "+e.message);
+  }
+  setCouponLoading(false);
+};
+
+const removeCoupon=()=>{setCoupon("");setCouponDiscount(0);setCouponApplied(false);setCouponMsg("");setCouponInput("");};
+
 const upiLink=`upi://pay?pa=printkaaro@ibl&pn=PrintKaaro&am=${total}&cu=INR&tn=PrintKaaro-Order`;
-const handleClick=()=>{if(m==="upi"){window.location.href=upiLink;setUpiDone(true);}else{setLoading(true);onPay(m);}};
-return<div style={{maxWidth:500,margin:"0 auto",padding:"24px 14px"}}><button onClick={onBack} style={{border:"none",background:"none",color:"#888",fontSize:14,cursor:"pointer",marginBottom:12}}>← Back</button><Progress step={2}/><h2 style={{fontSize:22,fontWeight:700,margin:"0 0 6px",fontFamily:"'DM Serif Display',Georgia,serif"}}>Payment</h2><p style={{fontSize:14,color:"#888",marginBottom:16}}>Choose payment method</p><div style={{background:"#FFFAF7",borderRadius:10,padding:14,border:"1px solid #FFE8D9",marginBottom:14,fontSize:13}}><div style={{display:"flex",justifyContent:"space-between",color:"#666",marginBottom:4}}><span>📄 {order.file}</span><span style={{fontWeight:600,color:"#333"}}>{order.pages}p×{order.copies}c</span></div><div style={{borderTop:"1px dashed #FFD5BE",paddingTop:8,marginTop:6,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:15,fontWeight:700}}>Total</span><span style={{fontSize:22,fontWeight:800,color:"#FF6B35"}}>₹{total}</span></div></div>{methods.map(x=><button key={x.id} onClick={()=>{setM(x.id);setUpiDone(false);}} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"13px 14px",borderRadius:10,cursor:"pointer",border:`2px solid ${m===x.id?"#FF6B35":"#eee"}`,background:m===x.id?"#FFF8F4":"#fff",textAlign:"left",marginBottom:8,boxSizing:"border-box"}}><span style={{fontSize:22}}>{x.i}</span><div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:600,color:"#333"}}>{x.l}</div><div style={{fontSize:12,color:"#999"}}>{x.s}</div></div><div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${m===x.id?"#FF6B35":"#ddd"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{m===x.id&&<div style={{width:10,height:10,borderRadius:"50%",background:"#FF6B35"}}/>}</div></button>)}
+const handleClick=()=>{
+  if(isFree){setLoading(true);onPay("free",coupon);return;}
+  if(m==="upi"){window.location.href=upiLink;setUpiDone(true);}else{setLoading(true);onPay(m,coupon);}
+};
+const methods=[{id:"upi",i:"📱",l:"UPI (GPay / PhonePe)",s:"Instant payment"},{id:"cod",i:"🚚",l:"Cash on Delivery",s:"Pay when you receive"}];
 
-{m==="upi"&&!upiDone&&<><button onClick={handleClick} style={{width:"100%",padding:14,borderRadius:10,border:"none",marginTop:8,background:btnBg,color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer"}}>📱 Pay ₹{total} via UPI</button><p style={{textAlign:"center",fontSize:12,color:"#888",marginTop:6}}>Opens your UPI app (GPay/PhonePe/Paytm)</p><p style={{textAlign:"center",fontSize:12,color:"#bbb",marginTop:2}}>UPI ID: printkaaro@ibl</p></>}
+return<div style={{maxWidth:500,margin:"0 auto",padding:"24px 14px"}}><button onClick={onBack} style={{border:"none",background:"none",color:"#888",fontSize:14,cursor:"pointer",marginBottom:12}}>← Back</button><Progress step={2}/><h2 style={{fontSize:22,fontWeight:700,margin:"0 0 6px",fontFamily:"'DM Serif Display',Georgia,serif"}}>Payment</h2><p style={{fontSize:14,color:"#888",marginBottom:16}}>Review & pay</p>
 
-{m==="upi"&&upiDone&&<div style={{background:"#F0FDF4",borderRadius:10,padding:18,border:"1px solid #BBF7D0",marginTop:10,textAlign:"center"}}><p style={{fontSize:15,fontWeight:600,color:"#16a34a",margin:"0 0 6px"}}>✅ Complete payment in your UPI app</p><p style={{fontSize:13,color:"#888",margin:"0 0 12px"}}>After paying, tap the button below</p><button onClick={()=>{setLoading(true);onPay("upi");}} disabled={loading} style={{width:"100%",padding:13,borderRadius:10,border:"none",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"wait":"pointer",opacity:loading?.7:1}}>{loading?"Confirming...":"I've Paid ✓"}</button><button onClick={handleClick} style={{marginTop:8,border:"none",background:"none",color:"#3b82f6",fontSize:13,fontWeight:600,cursor:"pointer"}}>Didn't open? Tap to retry</button></div>}
+{/* Order Summary */}
+<div style={{background:"#FFFAF7",borderRadius:10,padding:14,border:"1px solid #FFE8D9",marginBottom:14,fontSize:13}}>
+<div style={{display:"flex",justifyContent:"space-between",color:"#666",marginBottom:4}}><span>📄 {order.file}</span><span style={{fontWeight:600,color:"#333"}}>{order.pages}p×{order.copies}c</span></div>
+<div style={{display:"flex",justifyContent:"space-between",color:"#666",marginBottom:4}}><span>Subtotal</span><span>₹{basePrice}</span></div>
+{couponApplied&&<div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}><span style={{color:"#22c55e",fontWeight:600}}>🎉 Coupon ({coupon})</span><span style={{color:"#22c55e",fontWeight:700}}>-₹{couponDiscount}</span></div>}
+<div style={{display:"flex",justifyContent:"space-between",color:"#666",marginBottom:4}}><span>Delivery</span><span style={{color:del===0?"#22c55e":"#333"}}>{del===0?"FREE":"₹"+del}</span></div>
+<div style={{borderTop:"1px dashed #FFD5BE",paddingTop:8,marginTop:6,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:15,fontWeight:700}}>Total</span><span style={{fontSize:22,fontWeight:800,color:isFree?"#22c55e":"#FF6B35"}}>{isFree?"FREE ₹0":"₹"+total}</span></div>
+</div>
+
+{/* Coupon Input */}
+<div style={{background:"#fff",borderRadius:10,padding:14,border:"1px solid #eee",marginBottom:14}}>
+<div style={{fontSize:12,fontWeight:700,color:"#888",marginBottom:8}}>🏷️ APPLY COUPON</div>
+{couponApplied?
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:"#F0FDF4",borderRadius:8,padding:"10px 12px",border:"1px solid #BBF7D0"}}>
+<div><span style={{fontFamily:"monospace",fontWeight:800,color:"#22c55e",fontSize:14}}>{coupon}</span><span style={{fontSize:12,color:"#22c55e",marginLeft:6}}>-₹{couponDiscount}</span></div>
+<button onClick={removeCoupon} style={{border:"none",background:"none",color:"#ef4444",fontSize:12,fontWeight:600,cursor:"pointer"}}>Remove</button>
+</div>
+:
+<div style={{display:"flex",gap:6}}>
+<input value={couponInput} onChange={e=>setCouponInput(e.target.value.toUpperCase())} placeholder="Enter coupon code" onKeyDown={e=>e.key==="Enter"&&applyCoupon()} style={{flex:1,padding:"10px 12px",borderRadius:8,border:"1.5px solid #ddd",fontSize:14,fontFamily:"monospace",fontWeight:600,outline:"none",letterSpacing:1}}/>
+<button onClick={()=>applyCoupon()} disabled={couponLoading} style={{padding:"10px 18px",borderRadius:8,border:"none",background:"linear-gradient(135deg,#FF6B35,#FF8C42)",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>{couponLoading?"...":"Apply"}</button>
+</div>}
+{couponMsg&&!couponApplied&&<p style={{fontSize:12,color:couponMsg.startsWith("✅")?"#22c55e":"#ef4444",marginTop:6,marginBottom:0}}>{couponMsg}</p>}
+</div>
+
+{/* Payment Methods — only show if total > 0 */}
+{isFree?
+<div style={{background:"#F0FDF4",borderRadius:10,padding:18,border:"1px solid #BBF7D0",textAlign:"center",marginBottom:14}}>
+<div style={{fontSize:28,marginBottom:6}}>🎉</div>
+<div style={{fontSize:18,fontWeight:800,color:"#22c55e",marginBottom:4}}>This order is FREE!</div>
+<div style={{fontSize:13,color:"#888",marginBottom:12}}>No payment needed — just place your order</div>
+<button onClick={handleClick} disabled={loading} style={{width:"100%",padding:14,borderRadius:10,border:"none",background:"linear-gradient(135deg,#22c55e,#16a34a)",color:"#fff",fontSize:16,fontWeight:700,cursor:loading?"wait":"pointer"}}>{loading?"Placing Order...":"✅ Place Free Order"}</button>
+</div>
+:
+<>{methods.map(x=><button key={x.id} onClick={()=>{setM(x.id);setUpiDone(false);}} style={{width:"100%",display:"flex",alignItems:"center",gap:12,padding:"13px 14px",borderRadius:10,cursor:"pointer",border:`2px solid ${m===x.id?"#FF6B35":"#eee"}`,background:m===x.id?"#FFF8F4":"#fff",textAlign:"left",marginBottom:8,boxSizing:"border-box"}}><span style={{fontSize:22}}>{x.i}</span><div style={{flex:1,minWidth:0}}><div style={{fontSize:15,fontWeight:600,color:"#333"}}>{x.l}</div><div style={{fontSize:12,color:"#999"}}>{x.s}</div></div><div style={{width:18,height:18,borderRadius:"50%",border:`2px solid ${m===x.id?"#FF6B35":"#ddd"}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{m===x.id&&<div style={{width:10,height:10,borderRadius:"50%",background:"#FF6B35"}}/>}</div></button>)}
+
+{m==="upi"&&!upiDone&&<><button onClick={handleClick} style={{width:"100%",padding:14,borderRadius:10,border:"none",marginTop:8,background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",fontSize:16,fontWeight:700,cursor:"pointer"}}>📱 Pay ₹{total} via UPI</button><p style={{textAlign:"center",fontSize:12,color:"#888",marginTop:6}}>Opens your UPI app (GPay/PhonePe/Paytm)</p><p style={{textAlign:"center",fontSize:12,color:"#bbb",marginTop:2}}>UPI ID: printkaaro@ibl</p></>}
+
+{m==="upi"&&upiDone&&<div style={{background:"#F0FDF4",borderRadius:10,padding:18,border:"1px solid #BBF7D0",marginTop:10,textAlign:"center"}}><p style={{fontSize:15,fontWeight:600,color:"#16a34a",margin:"0 0 6px"}}>✅ Complete payment in your UPI app</p><p style={{fontSize:13,color:"#888",margin:"0 0 12px"}}>After paying, tap the button below</p><button onClick={()=>{setLoading(true);onPay("upi",coupon);}} disabled={loading} style={{width:"100%",padding:13,borderRadius:10,border:"none",background:"linear-gradient(135deg,#059669,#10b981)",color:"#fff",fontSize:15,fontWeight:700,cursor:loading?"wait":"pointer",opacity:loading?.7:1}}>{loading?"Confirming...":"I've Paid ✓"}</button><button onClick={handleClick} style={{marginTop:8,border:"none",background:"none",color:"#3b82f6",fontSize:13,fontWeight:600,cursor:"pointer"}}>Didn't open? Tap to retry</button></div>}
 
 {m==="cod"&&<><button onClick={handleClick} disabled={loading} style={{width:"100%",padding:14,borderRadius:10,border:"none",marginTop:8,background:"linear-gradient(135deg,#f59e0b,#eab308)",color:"#1a1a2e",fontSize:16,fontWeight:700,cursor:loading?"wait":"pointer",opacity:loading?.7:1}}>{loading?"Processing...":"🚚 Place Order — COD ₹"+total}</button><p style={{textAlign:"center",fontSize:12,color:"#f59e0b",marginTop:8}}>💡 Pay cash when delivered</p></>}
+</>}
 </div>;}
 
 function StatusPage({order,address,setPage}){const id=`#PK-${new Date().toISOString().slice(0,10).replace(/-/g,"")}-${String(Math.floor(Math.random()*999)).padStart(3,"0")}`;const d=order.price>=499?0:40;const steps=[{l:"Order Placed",t:"Just now",ok:true,i:"✅"},{l:"Payment Confirmed",t:"Just now",ok:true,i:"💳"},{l:"Printing",t:"Est. 2-4 hrs",ok:false,i:"🖨️"},{l:"Ready",ok:false,i:"📦"},{l:"Delivery",ok:false,i:"🚚"},{l:"Delivered",ok:false,i:"🏠"}];return<div style={{maxWidth:500,margin:"0 auto",padding:"24px 14px"}}><Progress step={3}/><div style={{textAlign:"center",marginBottom:18}}><div style={{width:48,height:48,borderRadius:"50%",background:"linear-gradient(135deg,#22c55e,#16a34a)",display:"inline-flex",alignItems:"center",justifyContent:"center",fontSize:22,color:"#fff",marginBottom:8}}>✓</div><h2 style={{fontSize:20,fontWeight:700,margin:"0 0 2px"}}>Order Confirmed!</h2><p style={{fontSize:11,color:"#888"}}>{id}</p></div><div style={{background:"#fff",borderRadius:10,padding:12,border:"1px solid #eee",marginBottom:12,fontSize:11}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}><span style={{color:"#888"}}>File</span><span style={{fontWeight:600}}>{order.file}</span></div><div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}><span style={{color:"#888"}}>Deliver to</span><span>{address.city}-{address.pincode}</span></div><div style={{borderTop:"1px solid #f0f0f0",paddingTop:6,marginTop:4,display:"flex",justifyContent:"space-between"}}><span style={{fontWeight:700}}>Total</span><span style={{fontSize:15,fontWeight:800,color:"#FF6B35"}}>₹{order.price+d}</span></div></div><div style={{background:"#fff",borderRadius:10,padding:12,border:"1px solid #eee",marginBottom:12}}><h3 style={{fontSize:12,fontWeight:700,margin:"0 0 10px"}}>Status</h3>{steps.map((s,i)=><div key={i} style={{display:"flex",gap:8}}><div style={{display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:26,height:26,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,background:s.ok?"#F0FDF4":"#f8f8f8",border:`2px solid ${s.ok?"#22c55e":"#e0e0e0"}`}}>{s.i}</div>{i<steps.length-1&&<div style={{width:2,height:18,background:s.ok?"#22c55e":"#e0e0e0"}}/>}</div><div style={{paddingBottom:6}}><p style={{fontSize:11,fontWeight:600,color:s.ok?"#333":"#bbb",margin:0}}>{s.l}</p>{s.t&&<p style={{fontSize:9,color:s.ok?"#16a34a":"#ccc",margin:0}}>{s.t}</p>}</div></div>)}</div><p style={{textAlign:"center",fontSize:10,color:"#999",marginBottom:8}}>💡 You can cancel within 30 minutes from My Orders</p><button onClick={()=>setPage("home")} style={{width:"100%",padding:10,borderRadius:8,border:"2px solid #FF6B35",background:"#fff",color:"#FF6B35",fontSize:12,fontWeight:600,cursor:"pointer"}}>+ Another Order</button></div>;}
@@ -372,7 +466,7 @@ const[orderLoading,setOrderLoading]=useState(false);
 const[orderMsg,setOrderMsg]=useState("");
 const[uploadPct,setUploadPct]=useState(0);
 
-const handlePay=async(paymentMethod)=>{
+const handlePay=async(paymentMethod,couponCode)=>{
   setOrderLoading(true);setOrderMsg("Uploading your files...");setUploadPct(0);
   
   const tryOrder=async(attempt)=>{
@@ -422,7 +516,7 @@ const handlePay=async(paymentMethod)=>{
       
       setOrderMsg("Placing your order...");setUploadPct(100);
       const pm=paymentMethod||"upi";
-      const created=await api.createOrder({fileName:order.file,filePath:filePaths.join(","),fileSize:0,pages:order.pages,copies:order.copies,colorMode:order.colorMode,paperSize:order.paperSize,sided:order.sided,binding:order.binding,notes:order.files?JSON.stringify(order.files):"",price:order.price,deliveryAddress:address,paymentMethod:pm==="cod"?"cash":pm});
+      const created=await api.createOrder({fileName:order.file,filePath:filePaths.join(","),fileSize:0,pages:order.pages,copies:order.copies,colorMode:order.colorMode,paperSize:order.paperSize,sided:order.sided,binding:order.binding,notes:order.files?JSON.stringify(order.files):"",price:order.price,deliveryAddress:address,paymentMethod:pm==="cod"?"cash":pm==="free"?"free":pm,couponCode:couponCode||""});
       const msg=encodeURIComponent(`🆕 New Order!\n📋 ${created.orderId||"Order"}\n👤 ${address.name} (${address.phone})\n📄 ${order.file}\n💰 ₹${created.totalPrice||order.price} (${pm==="cod"?"COD":pm})\n📍 ${address.city} - ${address.pincode}`);
       try{fetch(`https://api.callmebot.com/whatsapp.php?phone=918104780153&text=${msg}&apikey=YOUR_API_KEY`,{mode:"no-cors"});}catch(e){}
       setOrderLoading(false);setOrderMsg("");

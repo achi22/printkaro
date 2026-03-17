@@ -182,6 +182,143 @@ ${fileRows}
   w.document.close();
 }
 
+function CouponManager() {
+  const [coupons, setCoupons] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
+
+  const empty = { code: "", type: "flat", value: 0, maxDiscount: 499, minOrder: 0, description: "", usageLimit: 0, expiresAt: "", active: true };
+  const [form, setForm] = useState(empty);
+
+  const load = () => { api.getCoupons().then(r => setCoupons(r.coupons || [])).catch(() => {}).finally(() => setLoading(false)); };
+  useEffect(load, []);
+
+  const save = async () => {
+    if (!form.code) return alert("Code required");
+    setSaving(true);
+    try {
+      if (editing) { await api.updateCoupon(editing, form); }
+      else { await api.createCoupon(form); }
+      load(); setShowAdd(false); setEditing(null); setForm(empty);
+    } catch (e) { alert(e.message); }
+    setSaving(false);
+  };
+
+  const del = async (id) => {
+    if (!confirm("Delete this coupon?")) return;
+    try { await api.deleteCoupon(id); load(); } catch (e) { alert(e.message); }
+  };
+
+  const edit = (c) => {
+    setForm({ code: c.code, type: c.type, value: c.value, maxDiscount: c.maxDiscount, minOrder: c.minOrder, description: c.description, usageLimit: c.usageLimit, expiresAt: c.expiresAt ? c.expiresAt.slice(0, 10) : "", active: c.active });
+    setEditing(c._id); setShowAdd(true);
+  };
+
+  const toggle = async (c) => {
+    try { await api.updateCoupon(c._id, { active: !c.active }); load(); } catch (e) { alert(e.message); }
+  };
+
+  const typeInfo = { flat: "₹ off", percent: "% off", firstorder: "First Order FREE" };
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>🏷️ Coupon Management</h3>
+        <button onClick={() => { setShowAdd(true); setEditing(null); setForm(empty); }} style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#FF6B35,#FF8C42)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>+ New Coupon</button>
+      </div>
+
+      {/* Add/Edit Form */}
+      {showAdd && (
+        <div style={{ background: "#fff", borderRadius: 12, padding: 18, border: "1px solid #eee", marginBottom: 14 }}>
+          <h4 style={{ fontSize: 14, fontWeight: 700, margin: "0 0 12px" }}>{editing ? "Edit Coupon" : "Create New Coupon"}</h4>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div>
+              <label style={lbl}>CODE *</label>
+              <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value.toUpperCase().replace(/\s/g, "") })} placeholder="SUMMER50" style={{ ...inp, fontFamily: "monospace", fontWeight: 700, letterSpacing: 1 }} />
+            </div>
+            <div>
+              <label style={lbl}>TYPE</label>
+              <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={inp}>
+                <option value="flat">Flat ₹ Off</option>
+                <option value="percent">Percentage % Off</option>
+                <option value="firstorder">First Order FREE</option>
+              </select>
+            </div>
+            {form.type !== "firstorder" && <div>
+              <label style={lbl}>{form.type === "flat" ? "DISCOUNT ₹" : "DISCOUNT %"}</label>
+              <input type="number" value={form.value} onChange={e => setForm({ ...form, value: +e.target.value })} style={inp} />
+            </div>}
+            <div>
+              <label style={lbl}>MAX DISCOUNT ₹</label>
+              <input type="number" value={form.maxDiscount} onChange={e => setForm({ ...form, maxDiscount: +e.target.value })} style={inp} />
+            </div>
+            <div>
+              <label style={lbl}>MIN ORDER ₹</label>
+              <input type="number" value={form.minOrder} onChange={e => setForm({ ...form, minOrder: +e.target.value })} placeholder="0 = no minimum" style={inp} />
+            </div>
+            <div>
+              <label style={lbl}>USAGE LIMIT</label>
+              <input type="number" value={form.usageLimit} onChange={e => setForm({ ...form, usageLimit: +e.target.value })} placeholder="0 = unlimited" style={inp} />
+            </div>
+            <div>
+              <label style={lbl}>EXPIRES ON</label>
+              <input type="date" value={form.expiresAt} onChange={e => setForm({ ...form, expiresAt: e.target.value })} style={inp} />
+            </div>
+            <div style={{ gridColumn: "1/-1" }}>
+              <label style={lbl}>DESCRIPTION</label>
+              <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="e.g. First order free up to ₹499" style={inp} />
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <button onClick={save} disabled={saving} style={{ padding: "8px 20px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#22c55e,#16a34a)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{saving ? "Saving..." : editing ? "Update" : "Create"}</button>
+            <button onClick={() => { setShowAdd(false); setEditing(null); }} style={{ padding: "8px 16px", borderRadius: 8, border: "1px solid #ddd", background: "#fff", fontSize: 13, fontWeight: 600, cursor: "pointer", color: "#888" }}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {/* Coupon List */}
+      {loading ? <p style={{ color: "#999", textAlign: "center", padding: 20 }}>Loading...</p> :
+        coupons.length === 0 ? (
+          <div style={{ background: "#fff", borderRadius: 12, padding: 30, border: "1px solid #eee", textAlign: "center" }}>
+            <div style={{ fontSize: 36, marginBottom: 8 }}>🏷️</div>
+            <p style={{ fontSize: 14, color: "#888", margin: "0 0 12px" }}>No coupons yet. Create your first one!</p>
+            <p style={{ fontSize: 12, color: "#bbb" }}>Tip: Create a "FIRSTORDER" coupon with type "First Order FREE" and max discount ₹499</p>
+          </div>
+        ) :
+        coupons.map(c => (
+          <div key={c._id} style={{ background: "#fff", borderRadius: 10, padding: "14px 16px", border: `1.5px solid ${c.active ? "#eee" : "#fecaca"}`, marginBottom: 8, opacity: c.active ? 1 : 0.6 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <span style={{ fontFamily: "monospace", fontSize: 16, fontWeight: 800, color: c.active ? "#FF6B35" : "#999", letterSpacing: 1 }}>{c.code}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: c.active ? "#F0FDF4" : "#FEF2F2", color: c.active ? "#22c55e" : "#ef4444" }}>{c.active ? "ACTIVE" : "INACTIVE"}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 6, background: "#EFF6FF", color: "#3b82f6" }}>{typeInfo[c.type] || c.type}</span>
+                </div>
+                <div style={{ fontSize: 12, color: "#888" }}>
+                  {c.type === "flat" && `₹${c.value} off`}
+                  {c.type === "percent" && `${c.value}% off (max ₹${c.maxDiscount})`}
+                  {c.type === "firstorder" && `Free up to ₹${c.maxDiscount}`}
+                  {c.minOrder > 0 && ` • Min ₹${c.minOrder}`}
+                  {c.usageLimit > 0 && ` • ${c.usedCount || 0}/${c.usageLimit} used`}
+                  {c.usageLimit === 0 && ` • ${c.usedCount || 0} used`}
+                  {c.expiresAt && ` • Expires ${new Date(c.expiresAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`}
+                </div>
+                {c.description && <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>{c.description}</div>}
+              </div>
+              <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                <button onClick={() => toggle(c)} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", fontSize: 10, fontWeight: 600, cursor: "pointer", color: c.active ? "#ef4444" : "#22c55e" }}>{c.active ? "Disable" : "Enable"}</button>
+                <button onClick={() => edit(c)} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", fontSize: 10, fontWeight: 600, cursor: "pointer" }}>✏️</button>
+                <button onClick={() => del(c._id)} style={{ padding: "4px 10px", borderRadius: 6, border: "1px solid #fecaca", background: "#fff", fontSize: 10, fontWeight: 600, cursor: "pointer", color: "#ef4444" }}>🗑️</button>
+              </div>
+            </div>
+          </div>
+        ))}
+    </div>
+  );
+}
+
 function ShiprocketPanel({ order, onRefresh, saving, setSaving }) {
   const [step, setStep] = useState(order.shiprocketAWB ? "done" : order.shiprocketShipmentId ? "couriers" : "start");
   const [couriers, setCouriers] = useState([]);
@@ -639,7 +776,7 @@ export default function AdminDashboard() {
       </div>
 
       <div style={{ background: "#fff", borderBottom: "1px solid #eee", display: "flex", padding: "0 20px" }}>
-        {[{ key: "orders", label: "📦 Orders" }, { key: "analytics", label: "📊 Analytics" }, { key: "traffic", label: "🌐 Traffic" }].map(t => (
+        {[{ key: "orders", label: "📦 Orders" }, { key: "coupons", label: "🏷️ Coupons" }, { key: "analytics", label: "📊 Analytics" }, { key: "traffic", label: "🌐 Traffic" }].map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{ padding: "10px 16px", fontSize: 12, fontWeight: 600, border: "none", cursor: "pointer", borderBottom: `2px solid ${tab === t.key ? "#FF6B35" : "transparent"}`, color: tab === t.key ? "#FF6B35" : "#888", background: "none" }}>{t.label}</button>
         ))}
       </div>
@@ -752,6 +889,8 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {tab === "coupons" && <CouponManager />}
 
         {tab === "orders" && (<>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
