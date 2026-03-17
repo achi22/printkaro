@@ -42,17 +42,17 @@ const isImage=(f)=>/\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i.test(f.name)||f.type.s
 
 const countPages=(f,cb)=>{const r=new FileReader();r.onload=e=>{const s=new TextDecoder("latin1").decode(new Uint8Array(e.target.result));const m=s.match(/\/Type\s*\/Page[^s]/g);cb(Math.max(1,m?m.length:Math.ceil(f.size/30000)||1));};r.readAsArrayBuffer(f);};
 
-const addFiles=(fileList)=>{Array.from(fileList).forEach(f=>{
+const MAX_FILE_MB=200;
+const addFiles=(fileList)=>{const rejected=[];Array.from(fileList).forEach(f=>{
+  const sizeMB=f.size/(1024*1024);
+  if(sizeMB>MAX_FILE_MB){rejected.push(`${f.name} (${sizeMB.toFixed(1)}MB)`);return;}
   if(isImage(f)){
-    // Image file — photo printing
     const url=URL.createObjectURL(f);
     setFiles(prev=>[...prev,{file:f,type:"photo",preview:url,photoSize:"passport",qty:1,laminated:false,frame:"none"}]);
   } else if(f.type==="application/pdf"){
-    // PDF file — document printing
     countPages(f,pg=>{setFiles(prev=>[...prev,{file:f,type:"pdf",pages:pg,copies:1,clr:"bw",paper:"A4",sided:"double",bind:"none"}]);});
   }
-});};
-const updateFile=(idx,key,val)=>setFiles(prev=>prev.map((f,i)=>i===idx?{...f,[key]:val}:f));
+});if(rejected.length>0)alert(`These files are too large (max ${MAX_FILE_MB}MB each):\n\n${rejected.join("\n")}\n\nTip: Compress PDFs at ilovepdf.com before uploading.`);};const updateFile=(idx,key,val)=>setFiles(prev=>prev.map((f,i)=>i===idx?{...f,[key]:val}:f));
 const removeFile=(idx)=>setFiles(prev=>prev.filter((_,i)=>i!==idx));
 
 const calcPrice=(f)=>{
@@ -334,17 +334,46 @@ const[orderMsg,setOrderMsg]=useState("");
 const handlePay=async(paymentMethod)=>{
   setOrderLoading(true);setOrderMsg("Connecting to server...");
   
-  // Retry function - tries up to 3 times with delay
   const tryOrder=async(attempt)=>{
     try{
-      // Upload all PDF files
+      // Upload all files - ALL must succeed
       let filePaths=[];
+      let failedFiles=[];
       if(fileObj&&fileObj.length>0){
-        setOrderMsg("Uploading your files...");
-        for(const f of fileObj){
-          try{const up=await api.uploadPDF(f);filePaths.push(up.filePath);}catch(e){console.log("Upload skipped:",e.message);}
+        for(let i=0;i<fileObj.length;i++){
+          const f=fileObj[i];
+          setOrderMsg(`Uploading file ${i+1}/${fileObj.length}: ${f.name} (${(f.size/(1024*1024)).toFixed(1)}MB)...`);
+          
+          // Check file size before upload (200MB limit)
+          if(f.size>MAX_FILE_MB*1024*1024){
+            failedFiles.push(`${f.name} (too large - max ${MAX_FILE_MB}MB)`);
+            continue;
+          }
+          
+          try{
+            const up=await api.uploadPDF(f);
+            if(up.filePath) filePaths.push(up.filePath);
+            else failedFiles.push(f.name);
+          }catch(e){
+            failedFiles.push(`${f.name} (${e.message})`);
+          }
         }
       }
+      
+      // Block order if any file failed
+      if(failedFiles.length>0){
+        setOrderLoading(false);setOrderMsg("");
+        alert(`These files could not be uploaded:\n\n${failedFiles.join("\n")}\n\nPlease remove them or compress at ilovepdf.com (max ${MAX_FILE_MB}MB each). Order was NOT placed.`);
+        return;
+      }
+      
+      // Block order if no files uploaded at all
+      if(fileObj&&fileObj.length>0&&filePaths.length===0){
+        setOrderLoading(false);setOrderMsg("");
+        alert("No files could be uploaded. Please check your files and try again. Order was NOT placed.");
+        return;
+      }
+      
       setOrderMsg("Creating your order...");
       const pm=paymentMethod||"upi";
       const created=await api.createOrder({fileName:order.file,filePath:filePaths.join(","),fileSize:0,pages:order.pages,copies:order.copies,colorMode:order.colorMode,paperSize:order.paperSize,sided:order.sided,binding:order.binding,notes:order.files?JSON.stringify(order.files):"",price:order.price,deliveryAddress:address,paymentMethod:pm==="cod"?"cash":pm});
@@ -363,7 +392,6 @@ const handlePay=async(paymentMethod)=>{
     }
   };
   
-  // Wake the server first
   try{await fetch(api.API_URL+"/",{mode:"no-cors"});}catch(e){}
   await new Promise(r=>setTimeout(r,1000));
   tryOrder(1);
