@@ -83,6 +83,15 @@ return<div style={{background:"linear-gradient(180deg,#FFF9F5 0%,#FFF 40%)",minH
 </div>
 <div style={{maxWidth:560,margin:"0 auto",padding:"0 14px 36px"}}>
 
+{/* First Order FREE Banner */}
+<div style={{background:"linear-gradient(135deg,#FF6B35,#FF8C42)",borderRadius:12,padding:"14px 16px",marginBottom:14,textAlign:"center",position:"relative",overflow:"hidden"}}>
+<div style={{position:"absolute",top:-10,right:-10,width:60,height:60,borderRadius:"50%",background:"rgba(255,255,255,0.15)"}}/>
+<div style={{position:"absolute",bottom:-15,left:20,width:40,height:40,borderRadius:"50%",background:"rgba(255,255,255,0.1)"}}/>
+<div style={{fontSize:11,fontWeight:700,color:"rgba(255,255,255,0.85)",letterSpacing:1,marginBottom:4}}>🎉 LIMITED TIME OFFER</div>
+<div style={{fontSize:20,fontWeight:800,color:"#fff",marginBottom:2}}>First Order FREE</div>
+<div style={{fontSize:13,color:"rgba(255,255,255,0.9)"}}>up to ₹499 • Free delivery included</div>
+</div>
+
 {/* Pricing Cards */}
 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
 <div style={{background:"#fff",borderRadius:10,padding:"12px 8px",border:"1px solid #eee",textAlign:"center"}}>
@@ -268,40 +277,70 @@ return<div style={{maxWidth:520,margin:"0 auto",padding:"24px 14px"}}><h2 style=
 <button onClick={()=>setPage("home")} style={{width:"100%",padding:10,borderRadius:8,border:"2px solid #FF6B35",background:"#fff",color:"#FF6B35",fontSize:12,fontWeight:600,cursor:"pointer",marginTop:4}}>+ New Order</button>
 
 {/* Order Detail Modal */}
-{detail&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.4)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>setDetail(null)}><div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:14,padding:20,maxWidth:460,width:"100%",maxHeight:"85vh",overflow:"auto"}}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}><h3 style={{fontSize:18,fontWeight:700,margin:0}}>Order {detail.orderId}</h3><button onClick={()=>setDetail(null)} style={{border:"none",background:"#f5f5f5",borderRadius:6,width:30,height:30,cursor:"pointer",color:"#999",fontSize:14}}>✕</button></div>
+{detail&&<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",zIndex:100,display:"flex",alignItems:"center",justifyContent:"center",padding:16}} onClick={()=>setDetail(null)}><div onClick={e=>e.stopPropagation()} style={{background:"#fff",borderRadius:20,maxWidth:460,width:"100%",maxHeight:"88vh",overflow:"auto",boxShadow:"0 20px 60px rgba(0,0,0,.15)"}}>
 
-{/* Status Timeline */}
-<div style={{marginBottom:14}}>
-{["confirmed","printing","ready","shipped","delivered"].map((s,i)=>{const done=["confirmed","printing","ready","shipped","delivered"].indexOf(detail.status)>=i;const isCurrent=detail.status===s;return<div key={s} style={{display:"flex",gap:10}}><div style={{display:"flex",flexDirection:"column",alignItems:"center"}}><div style={{width:26,height:26,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,background:done?"#F0FDF4":"#f8f8f8",border:`2px solid ${done?"#22c55e":"#e0e0e0"}`,fontWeight:isCurrent?700:400}}>{done?"✓":"○"}</div>{i<4&&<div style={{width:2,height:16,background:done?"#22c55e":"#e0e0e0"}}/>}</div><div style={{paddingBottom:6}}><span style={{fontSize:13,fontWeight:isCurrent?700:500,color:done?"#333":"#bbb"}}>{s.charAt(0).toUpperCase()+s.slice(1)}</span></div></div>;})}
-{detail.status==="cancelled"&&<div style={{background:"#FEF2F2",borderRadius:6,padding:10,marginTop:4}}><span style={{fontSize:13,color:"#ef4444",fontWeight:600}}>❌ Order Cancelled</span></div>}
+{/* Header */}
+<div style={{background:"linear-gradient(135deg,#FF6B35,#FF8C42)",borderRadius:"20px 20px 0 0",padding:"20px 20px 16px",color:"#fff"}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+<div><div style={{fontSize:11,opacity:.8,fontWeight:600,marginBottom:2}}>ORDER</div><div style={{fontSize:20,fontWeight:800,fontFamily:"monospace"}}>{detail.orderId}</div><div style={{fontSize:12,opacity:.8,marginTop:2}}>{new Date(detail.createdAt).toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})}</div></div>
+<button onClick={()=>setDetail(null)} style={{border:"none",background:"rgba(255,255,255,.2)",borderRadius:8,width:32,height:32,cursor:"pointer",color:"#fff",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+</div>
+<div style={{marginTop:12,display:"flex",alignItems:"center",gap:8}}>
+<span style={{fontSize:20,fontWeight:800}}>₹{detail.totalPrice}</span>
+{detail.discount>0&&<span style={{fontSize:12,background:"rgba(255,255,255,.25)",borderRadius:6,padding:"2px 8px"}}>-₹{detail.discount} FREE</span>}
+<span style={{fontSize:12,opacity:.8,marginLeft:"auto"}}>{detail.paymentMethod==="cash"?"Cash on Delivery":"UPI"} • {detail.paymentStatus}</span>
+</div>
 </div>
 
-{/* Details */}
-<div style={{fontSize:14,background:"#f9f9f9",borderRadius:8,padding:14,marginBottom:10}}>
-<div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{color:"#888"}}>File</span><span style={{fontWeight:600}}>{detail.fileName}</span></div>
-<div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{color:"#888"}}>Pages × Copies</span><span>{detail.pages} × {detail.copies}</span></div>
-<div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{color:"#888"}}>Type</span><span>{detail.colorMode==="bw"?"B&W":"Color"} • {detail.paperSize} • {detail.sided}</span></div>
-<div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{color:"#888"}}>Binding</span><span>{detail.binding}</span></div>
-<div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{color:"#888"}}>Payment</span><span>{detail.paymentMethod} • {detail.paymentStatus}</span></div>
-{detail.trackingId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}><span style={{color:"#888"}}>Tracking</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:"#0ea5e9"}}>{detail.deliveryPartner}: {detail.trackingId}</span><a href={`https://shiprocket.co/tracking/${detail.trackingId}`} target="_blank" rel="noopener noreferrer" style={{padding:"3px 8px",borderRadius:4,background:"#0ea5e9",color:"#fff",fontSize:10,fontWeight:600,textDecoration:"none"}}>Track</a></div></div>}
+<div style={{padding:"16px 20px 20px"}}>
+
+{/* Status Tracker */}
+<div style={{background:"#f9fafb",borderRadius:14,padding:"16px 14px",marginBottom:14}}>
+<div style={{fontSize:12,fontWeight:700,color:"#888",marginBottom:12,letterSpacing:.5}}>TRACKING STATUS</div>
+<div style={{display:"flex",alignItems:"center",gap:0,marginBottom:8}}>
+{["confirmed","printing","ready","shipped","delivered"].map((s,i)=>{const steps=["confirmed","printing","ready","shipped","delivered"];const currentIdx=steps.indexOf(detail.status);const done=currentIdx>=i;const isCurrent=detail.status===s;const icons=["✓","🖨️","📦","🚚","🏠"];return<div key={s} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",position:"relative"}}>
+{i>0&&<div style={{position:"absolute",top:14,right:"50%",width:"100%",height:3,background:done?"#22c55e":"#e5e7eb",zIndex:0}}/>}
+<div style={{width:28,height:28,borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:done?13:11,background:done?"#22c55e":isCurrent?"#fbbf24":"#e5e7eb",color:done?"#fff":"#888",fontWeight:700,zIndex:1,border:isCurrent?"3px solid #f59e0b":"none",transition:"all .3s"}}>{done?icons[i]:(i+1)}</div>
+<span style={{fontSize:9,marginTop:4,color:done?"#22c55e":isCurrent?"#f59e0b":"#bbb",fontWeight:done||isCurrent?700:500,textAlign:"center"}}>{s.charAt(0).toUpperCase()+s.slice(1)}</span>
+</div>;})}
+</div>
+{detail.status==="cancelled"&&<div style={{background:"#FEF2F2",borderRadius:8,padding:"8px 12px",textAlign:"center"}}><span style={{fontSize:13,color:"#ef4444",fontWeight:600}}>❌ Order Cancelled</span></div>}
+</div>
+
+{/* Tracking Link */}
+{detail.trackingId&&<div style={{background:"linear-gradient(135deg,#0ea5e9,#0284c7)",borderRadius:12,padding:"12px 16px",marginBottom:14,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+<div><div style={{fontSize:11,color:"rgba(255,255,255,.8)",fontWeight:600}}>TRACKING</div><div style={{fontSize:14,fontWeight:700,color:"#fff"}}>{detail.deliveryPartner} • {detail.trackingId}</div></div>
+<a href={`https://shiprocket.co/tracking/${detail.trackingId}`} target="_blank" rel="noopener noreferrer" style={{padding:"8px 16px",borderRadius:8,background:"rgba(255,255,255,.2)",color:"#fff",fontSize:12,fontWeight:700,textDecoration:"none",whiteSpace:"nowrap"}}>📍 Track Live</a>
+</div>}
+
+{/* Order Details */}
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+<div style={{background:"#f9fafb",borderRadius:10,padding:12}}><div style={{fontSize:10,color:"#888",fontWeight:600,marginBottom:4}}>FILE</div><div style={{fontSize:13,fontWeight:600,color:"#333",wordBreak:"break-all"}}>{detail.fileName}</div></div>
+<div style={{background:"#f9fafb",borderRadius:10,padding:12}}><div style={{fontSize:10,color:"#888",fontWeight:600,marginBottom:4}}>PRINT</div><div style={{fontSize:13,fontWeight:600,color:"#333"}}>{detail.colorMode==="bw"?"B&W":"Color"} • {detail.paperSize}</div><div style={{fontSize:11,color:"#888"}}>{detail.sided==="double"?"Both Sides":"Single"}</div></div>
+<div style={{background:"#f9fafb",borderRadius:10,padding:12}}><div style={{fontSize:10,color:"#888",fontWeight:600,marginBottom:4}}>PAGES × COPIES</div><div style={{fontSize:18,fontWeight:800,color:"#FF6B35"}}>{detail.pages} × {detail.copies}</div></div>
+<div style={{background:"#f9fafb",borderRadius:10,padding:12}}><div style={{fontSize:10,color:"#888",fontWeight:600,marginBottom:4}}>BINDING</div><div style={{fontSize:13,fontWeight:600,color:"#333"}}>{detail.binding||"None"}</div></div>
 </div>
 
 {/* Delivery Address */}
-{detail.deliveryAddress&&<div style={{fontSize:14,background:"#f9f9f9",borderRadius:8,padding:14,marginBottom:10}}>
-<div style={{fontWeight:600,marginBottom:3}}>📍 Delivery Address</div>
-<div style={{color:"#666"}}>{detail.deliveryAddress.name} • {detail.deliveryAddress.phone}</div>
-<div style={{color:"#666"}}>{detail.deliveryAddress.address}, {detail.deliveryAddress.city} - {detail.deliveryAddress.pincode}</div>
+{detail.deliveryAddress&&<div style={{background:"#f9fafb",borderRadius:10,padding:14,marginBottom:14}}>
+<div style={{fontSize:10,color:"#888",fontWeight:600,marginBottom:6}}>📍 DELIVERY ADDRESS</div>
+<div style={{fontSize:14,fontWeight:600,color:"#333"}}>{detail.deliveryAddress.name}</div>
+<div style={{fontSize:13,color:"#666",marginTop:2}}>{detail.deliveryAddress.phone}</div>
+<div style={{fontSize:13,color:"#666",marginTop:2}}>{detail.deliveryAddress.address}, {detail.deliveryAddress.city} - {detail.deliveryAddress.pincode}</div>
 </div>}
 
-{/* Price */}
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderTop:"2px solid #FF6B35"}}>
-<span style={{fontSize:16,fontWeight:700}}>Total</span><span style={{fontSize:22,fontWeight:800,color:"#FF6B35"}}>₹{detail.totalPrice}</span>
+{/* Price Breakdown */}
+<div style={{background:"#f9fafb",borderRadius:10,padding:14,marginBottom:14}}>
+<div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span style={{color:"#888"}}>Subtotal</span><span>₹{detail.price}</span></div>
+{detail.discount>0&&<div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span style={{color:"#22c55e",fontWeight:600}}>🎉 First Order Discount</span><span style={{color:"#22c55e",fontWeight:600}}>-₹{detail.discount}</span></div>}
+<div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:4}}><span style={{color:"#888"}}>Delivery</span><span style={{color:detail.deliveryCharge===0?"#22c55e":"#333"}}>{detail.deliveryCharge===0?"FREE":"₹"+detail.deliveryCharge}</span></div>
+<div style={{borderTop:"2px solid #FF6B35",paddingTop:8,marginTop:4,display:"flex",justifyContent:"space-between"}}><span style={{fontSize:16,fontWeight:700}}>Total</span><span style={{fontSize:22,fontWeight:800,color:"#FF6B35"}}>₹{detail.totalPrice}</span></div>
 </div>
 
-{/* Cancel Button (within 30 min) */}
-{canCancel(detail)&&<button onClick={()=>doCancel(detail._id)} disabled={cancelling} style={{width:"100%",padding:12,borderRadius:8,border:"1.5px solid #ef4444",background:"#fff",color:"#ef4444",fontSize:14,fontWeight:600,cursor:"pointer",marginTop:10}}>{cancelling?"Cancelling...":"Cancel Order (within 30 min)"}</button>}
-{detail.status!=="cancelled"&&!canCancel(detail)&&detail.status!=="delivered"&&<p style={{fontSize:12,color:"#999",textAlign:"center",marginTop:8}}>Cancellation window (30 min) has passed</p>}
+{/* Cancel Button */}
+{canCancel(detail)&&<button onClick={()=>doCancel(detail._id)} disabled={cancelling} style={{width:"100%",padding:12,borderRadius:10,border:"none",background:"linear-gradient(135deg,#ef4444,#dc2626)",color:"#fff",fontSize:14,fontWeight:700,cursor:"pointer"}}>{cancelling?"Cancelling...":"Cancel Order"}</button>}
+{detail.status!=="cancelled"&&!canCancel(detail)&&detail.status!=="delivered"&&<p style={{fontSize:11,color:"#bbb",textAlign:"center",marginTop:6}}>Cancellation window (30 min) has passed</p>}
+</div>
 </div></div>}
 </div>;}
 

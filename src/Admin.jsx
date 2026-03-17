@@ -100,10 +100,12 @@ function printInvoice(order) {
   try { fileDetails = JSON.parse(order.notes || "[]"); } catch (e) {}
   
   const calcFilePrice = (f) => {
-    const ppp = f.colorMode === "bw" ? 0.75 : 2;
-    const sm = f.sided === "double" ? 0.7 : 1;
-    const bindPrice = {"No Binding":0,"Spiral":25,"Staple":10,"Perfect Bind":60,"Hardcover":150}[f.binding] || 0;
-    return Math.ceil(ppp * sm * (f.pages || 1) * (f.copies || 1) + bindPrice * (f.copies || 1));
+    // Match App.jsx pricing: B&W both=0.75, B&W single=1, Color both=2, Color single=3
+    let ppp;
+    if (f.colorMode === "bw") ppp = f.sided === "double" ? 0.75 : 1;
+    else ppp = f.sided === "double" ? 2 : 3;
+    const bindPrice = {"No Binding":0,"none":0,"Spiral":25,"Staple":10,"Perfect Bind":60,"Hardcover":150}[f.binding] || 0;
+    return Math.ceil(ppp * (f.pages || 1) * (f.copies || 1) + bindPrice * (f.copies || 1));
   };
 
   let fileRows = "";
