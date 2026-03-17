@@ -195,10 +195,11 @@ function ShiprocketPanel({ order, onRefresh, saving, setSaving }) {
     try {
       const res = await api.srCreateShipment(order.orderId || order._id);
       setShipmentId(res.shipmentId);
+      // Use couriers returned from server if available
+      if (res.couriers && res.couriers.length > 0) {
+        setCouriers(res.couriers);
+      }
       setStep("couriers");
-      // Auto-fetch couriers
-      const cr = await api.srGetCouriers(res.shipmentId);
-      setCouriers(cr.couriers || []);
     } catch (e) { setError(e.message); }
     setLoading(false);
   };
