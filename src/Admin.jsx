@@ -180,6 +180,154 @@ ${fileRows}
   w.document.close();
 }
 
+function ShiprocketPanel({ order, onRefresh, saving, setSaving }) {
+  const [step, setStep] = useState(order.shiprocketAWB ? "done" : order.shiprocketShipmentId ? "couriers" : "start");
+  const [couriers, setCouriers] = useState([]);
+  const [shipmentId, setShipmentId] = useState(order.shiprocketShipmentId || "");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
+  const [tracking, setTracking] = useState(null);
+
+  // Step 1: Create shipment on Shiprocket
+  const createShipment = async () => {
+    setLoading(true); setError("");
+    try {
+      const res = await api.srCreateShipment(order.orderId || order._id);
+      setShipmentId(res.shipmentId);
+      setStep("couriers");
+      // Auto-fetch couriers
+      const cr = await api.srGetCouriers(res.shipmentId);
+      setCouriers(cr.couriers || []);
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  // Step 1b: Load couriers if shipment already exists
+  const loadCouriers = async () => {
+    setLoading(true); setError("");
+    try {
+      const cr = await api.srGetCouriers(shipmentId);
+      setCouriers(cr.couriers || []);
+      setStep("couriers");
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  // Step 2: Assign courier
+  const assignCourier = async (courierId) => {
+    setLoading(true); setError("");
+    try {
+      const res = await api.srAssignCourier(shipmentId, courierId, order.orderId || order._id);
+      setResult(res);
+      setStep("done");
+      onRefresh();
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  // Track
+  const loadTracking = async () => {
+    setLoading(true);
+    try {
+      const t = await api.srTrack(order.orderId || order._id);
+      setTracking(t);
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  // Cancel
+  const cancelShipment = async () => {
+    if (!confirm("Cancel this Shiprocket shipment?")) return;
+    setLoading(true);
+    try {
+      await api.srCancel(order.orderId || order._id);
+      setStep("start"); setShipmentId(""); setResult(null);
+      onRefresh();
+    } catch (e) { setError(e.message); }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ background: "#F0F9FF", borderRadius: 8, padding: 14, marginBottom: 8, border: "1px solid #BAE6FD" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ ...lbl, color: "#0ea5e9", margin: 0 }}>🚚 SHIPROCKET SHIPPING</div>
+        {order.shiprocketAWB && <a href={`https://shiprocket.co/tracking/${order.shiprocketAWB}`} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: "#0ea5e9", textDecoration: "none", fontWeight: 600 }}>Track →</a>}
+      </div>
+
+      {error && <div style={{ background: "#FEF2F2", borderRadius: 6, padding: 8, marginBottom: 8, fontSize: 11, color: "#ef4444" }}>❌ {error} <button onClick={() => setError("")} style={{ border: "none", background: "none", color: "#ef4444", cursor: "pointer", fontWeight: 700 }}>×</button></div>}
+
+      {/* Step: Start — Create Shipment */}
+      {step === "start" && !loading && (
+        <div>
+          <p style={{ fontSize: 12, color: "#666", margin: "0 0 8px" }}>Create a shipment on Shiprocket to get courier options and pricing.</p>
+          <button onClick={createShipment} style={{ padding: "8px 18px", borderRadius: 8, border: "none", background: "linear-gradient(135deg,#0ea5e9,#0284c7)", color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>📦 Create Shipment</button>
+        </div>
+      )}
+
+      {/* Step: Couriers — Pick courier */}
+      {step === "couriers" && !loading && (
+        <div>
+          {couriers.length === 0 ? (
+            <div>
+              <p style={{ fontSize: 12, color: "#666", margin: "0 0 8px" }}>Shipment created! Fetch available couriers:</p>
+              <button onClick={loadCouriers} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Load Couriers</button>
+            </div>
+          ) : (
+            <div>
+              <p style={{ fontSize: 12, fontWeight: 600, color: "#333", margin: "0 0 6px" }}>Select a courier ({couriers.length} available):</p>
+              <div style={{ maxHeight: 200, overflowY: "auto" }}>
+                {couriers.map(c => (
+                  <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", borderRadius: 6, border: "1px solid #e0e0e0", background: "#fff", marginBottom: 4 }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</div>
+                      <div style={{ fontSize: 10, color: "#888" }}>ETA: {c.etd} • Rating: {c.rating}/5</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "#FF6B35" }}>₹{c.rate}</span>
+                      <button onClick={() => assignCourier(c.id)} style={{ padding: "5px 12px", borderRadius: 6, border: "none", background: "#22c55e", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Ship</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Step: Done — Shipped */}
+      {step === "done" && !loading && (
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            <div style={{ background: "#fff", borderRadius: 6, padding: 8 }}>
+              <div style={{ fontSize: 10, color: "#888" }}>AWB / TRACKING</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "#0ea5e9" }}>{order.shiprocketAWB || result?.awb || "Pending"}</div>
+            </div>
+            <div style={{ background: "#fff", borderRadius: 6, padding: 8 }}>
+              <div style={{ fontSize: 10, color: "#888" }}>COURIER</div>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>{order.deliveryPartner || result?.courierName || "Assigned"}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            {(order.shiprocketLabelUrl || result?.labelUrl) && <a href={order.shiprocketLabelUrl || result?.labelUrl} target="_blank" rel="noopener noreferrer" style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid #0ea5e9", background: "#fff", color: "#0ea5e9", fontSize: 11, fontWeight: 600, textDecoration: "none" }}>🏷️ Label</a>}
+            {(order.shiprocketAWB || result?.awb) && <a href={`https://shiprocket.co/tracking/${order.shiprocketAWB || result?.awb}`} target="_blank" rel="noopener noreferrer" style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid #22c55e", background: "#fff", color: "#22c55e", fontSize: 11, fontWeight: 600, textDecoration: "none" }}>📍 Track</a>}
+            <button onClick={loadTracking} style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid #666", background: "#fff", color: "#666", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>🔄 Status</button>
+            <button onClick={cancelShipment} style={{ padding: "5px 12px", borderRadius: 6, border: "1px solid #ef4444", background: "#fff", color: "#ef4444", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Cancel Ship</button>
+          </div>
+          {tracking && (
+            <div style={{ marginTop: 8, background: "#fff", borderRadius: 6, padding: 8, fontSize: 11 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>Latest Status:</div>
+              <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "#555", fontSize: 10 }}>{JSON.stringify(tracking.tracking, null, 2).slice(0, 500)}</pre>
+            </div>
+          )}
+        </div>
+      )}
+
+      {loading && <div style={{ textAlign: "center", padding: 12 }}><div style={{ display: "inline-block", width: 20, height: 20, borderRadius: "50%", border: "3px solid #0ea5e920", borderTopColor: "#0ea5e9", animation: "spin 1s linear infinite" }} /><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style><p style={{ fontSize: 11, color: "#888", margin: "6px 0 0" }}>Working...</p></div>}
+    </div>
+  );
+}
+
 function OrderDetail({ order, onClose, onUpdate, onCancel, onRefresh }) {
   const [editing, setEditing] = useState(false);
   const [ed, setEd] = useState({});
@@ -205,8 +353,9 @@ function OrderDetail({ order, onClose, onUpdate, onCancel, onRefresh }) {
     <Modal onClose={onClose} title={`Order ${order.orderId}`} wide>
       <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
         {order.filePath && order.filePath.split(",").filter(Boolean).map((fid, i) => 
-          <a key={i} href={`${api.API_URL}/api/orders/file/${fid}?adminpass=${localStorage.getItem("pk_admin")}`} target="_blank" rel="noopener noreferrer" style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #3b82f6", background: "#EFF6FF", color: "#3b82f6", fontSize: 11, fontWeight: 600, textDecoration: "none" }}>📄 PDF {order.filePath.includes(",") ? (i+1) : ""}</a>
+          <a key={i} href={`${api.API_URL}/api/orders/file/${fid}?adminpass=${localStorage.getItem("pk_admin")}`} target="_blank" rel="noopener noreferrer" style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #3b82f6", background: "#EFF6FF", color: "#3b82f6", fontSize: 11, fontWeight: 600, textDecoration: "none" }}>📄 File {order.filePath.includes(",") ? (i+1) : ""}</a>
         )}
+        {(!order.filePath || order.filePath.trim() === "") && <span style={{ padding: "6px 12px", borderRadius: 6, background: "#FEF2F2", color: "#ef4444", fontSize: 11, fontWeight: 600 }}>⚠️ No files uploaded — customer needs to re-order</span>}
         <button onClick={() => printInvoice(order)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>🧾 Invoice</button>
         <button onClick={() => setEditing(!editing)} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #ddd", background: editing ? "#FFF3ED" : "#fff", color: editing ? "#FF6B35" : "#333", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>✏️ {editing ? "Cancel" : "Edit"}</button>
         <a href={`https://wa.me/91${addr.phone || user.phone}?text=Hi ${addr.name || user.name}, your PrintKaaro order ${order.orderId} update:`} target="_blank" rel="noopener noreferrer" style={{ padding: "6px 12px", borderRadius: 6, background: "#25D366", color: "#fff", fontSize: 11, fontWeight: 600, textDecoration: "none" }}>💬 WhatsApp</a>
@@ -276,17 +425,7 @@ function OrderDetail({ order, onClose, onUpdate, onCancel, onRefresh }) {
           {order.notes && <div style={{ background: "#FFFAF0", borderRadius: 8, padding: 12, marginBottom: 8, border: "1px solid #FFE8C8" }}><div style={{ ...lbl, color: "#f59e0b" }}>NOTES</div><div style={{ fontSize: 12 }}>{order.notes}</div></div>}
 
           {(order.status === "ready" || order.status === "shipped" || order.status === "delivered") && (
-            <div style={{ background: "#F0F9FF", borderRadius: 8, padding: 12, marginBottom: 8, border: "1px solid #BAE6FD" }}>
-              <div style={{ ...lbl, color: "#0ea5e9" }}>TRACKING</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginTop: 4 }}>
-                <select value={partner} onChange={e => setPartner(e.target.value)} style={{ ...inp, fontSize: 12 }}>
-                  <option value="">Select partner...</option>
-                  <option>Delhivery</option><option>Speed Post</option><option>DTDC</option><option>BlueDart</option><option>Self Delivery</option>
-                </select>
-                <input value={trackingId} onChange={e => setTrackingId(e.target.value)} placeholder="Tracking ID" style={{ ...inp, fontSize: 12 }} />
-              </div>
-              <button onClick={saveTracking} disabled={saving} style={{ marginTop: 6, padding: "5px 12px", borderRadius: 6, border: "none", background: "#0ea5e9", color: "#fff", fontSize: 11, fontWeight: 600, cursor: "pointer" }}>{saving ? "..." : "Save Tracking"}</button>
-            </div>
+            <ShiprocketPanel order={order} onRefresh={onRefresh} saving={saving} setSaving={setSaving} />
           )}
 
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 12 }}>

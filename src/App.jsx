@@ -284,7 +284,7 @@ return<div style={{maxWidth:520,margin:"0 auto",padding:"24px 14px"}}><h2 style=
 <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{color:"#888"}}>Type</span><span>{detail.colorMode==="bw"?"B&W":"Color"} • {detail.paperSize} • {detail.sided}</span></div>
 <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{color:"#888"}}>Binding</span><span>{detail.binding}</span></div>
 <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{color:"#888"}}>Payment</span><span>{detail.paymentMethod} • {detail.paymentStatus}</span></div>
-{detail.trackingId&&<div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}><span style={{color:"#888"}}>Tracking</span><span style={{color:"#0ea5e9"}}>{detail.deliveryPartner}: {detail.trackingId}</span></div>}
+{detail.trackingId&&<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:5}}><span style={{color:"#888"}}>Tracking</span><div style={{display:"flex",alignItems:"center",gap:6}}><span style={{color:"#0ea5e9"}}>{detail.deliveryPartner}: {detail.trackingId}</span><a href={`https://shiprocket.co/tracking/${detail.trackingId}`} target="_blank" rel="noopener noreferrer" style={{padding:"3px 8px",borderRadius:4,background:"#0ea5e9",color:"#fff",fontSize:10,fontWeight:600,textDecoration:"none"}}>Track</a></div></div>}
 </div>
 
 {/* Delivery Address */}

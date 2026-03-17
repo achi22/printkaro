@@ -59,7 +59,7 @@ export async function uploadPDF(file, onProgress) {
     });
   }
 
-  // Large files — chunked upload
+  // Large files — chunked upload (sequential, streamed to GridFS)
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   const uploadId = Date.now() + "_" + Math.random().toString(36).slice(2, 8);
 
@@ -74,25 +74,37 @@ export async function uploadPDF(file, onProgress) {
     fd.append("chunkIndex", i);
     fd.append("totalChunks", totalChunks);
     fd.append("fileName", file.name);
-    fd.append("mimeType", file.type);
+    fd.append("mimeType", file.type || "application/pdf");
     fd.append("fileSize", file.size);
 
-    const res = await fetch(`${API_URL}/api/orders/upload-chunk`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${authToken}` },
-      body: fd,
-    });
+    // Retry each chunk up to 3 times
+    let chunkOk = false;
+    for (let attempt = 0; attempt < 3 && !chunkOk; attempt++) {
+      try {
+        const res = await fetch(`${API_URL}/api/orders/upload-chunk`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${authToken}` },
+          body: fd,
+        });
 
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error(e.error || `Chunk ${i + 1}/${totalChunks} failed`);
+        if (!res.ok) {
+          const e = await res.json().catch(() => ({}));
+          if (attempt === 2) throw new Error(e.error || `Chunk ${i + 1}/${totalChunks} failed`);
+          await new Promise(r => setTimeout(r, 2000));
+          continue;
+        }
+
+        const data = await res.json();
+        if (onProgress) onProgress(Math.round(((i + 1) / totalChunks) * 100));
+        
+        // Last chunk returns the file info
+        if (data.filePath) return data;
+        chunkOk = true;
+      } catch (err) {
+        if (attempt === 2) throw err;
+        await new Promise(r => setTimeout(r, 2000));
+      }
     }
-
-    const data = await res.json();
-    if (onProgress) onProgress(Math.round(((i + 1) / totalChunks) * 100));
-
-    // Last chunk returns the file info
-    if (data.filePath) return data;
   }
 
   throw new Error("Upload completed but no file ID returned");
@@ -128,3 +140,11 @@ export async function addManualOrder(d) { return (await api("/api/admin/orders/m
 export async function deleteOrder(id) { return api(`/api/admin/orders/${id}`, { method: "DELETE", headers: ah() }); }
 export async function cleanupOldOrders() { return api("/api/admin/orders-cleanup", { method: "DELETE", headers: ah() }); }
 export function getAdminPdfUrl(orderId) { return `${API_URL}/api/orders/${orderId}/file?adminpass=${adminPassword}`; }
+
+// ── SHIPROCKET ──
+export async function srCreateShipment(orderId) { return api("/api/admin/shiprocket/ship", { method: "POST", body: JSON.stringify({ orderId }), headers: ah() }); }
+export async function srGetCouriers(shipmentId) { return api("/api/admin/shiprocket/couriers", { method: "POST", body: JSON.stringify({ shipmentId }), headers: ah() }); }
+export async function srAssignCourier(shipmentId, courierId, orderId) { return api("/api/admin/shiprocket/assign", { method: "POST", body: JSON.stringify({ shipmentId, courierId, orderId }), headers: ah() }); }
+export async function srTrack(orderId) { return api(`/api/admin/shiprocket/track/${orderId}`, { headers: ah() }); }
+export async function srCancel(orderId) { return api("/api/admin/shiprocket/cancel", { method: "POST", body: JSON.stringify({ orderId }), headers: ah() }); }
+export async function srCheckPin(pincode, weight, cod) { return api("/api/admin/shiprocket/check", { method: "POST", body: JSON.stringify({ pincode, weight, cod }), headers: ah() }); }
