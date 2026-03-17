@@ -208,7 +208,7 @@ function ShiprocketPanel({ order, onRefresh, saving, setSaving }) {
   const loadCouriers = async () => {
     setLoading(true); setError("");
     try {
-      const cr = await api.srGetCouriers(shipmentId);
+      const cr = await api.srGetCouriers(shipmentId, order.orderId || order._id);
       setCouriers(cr.couriers || []);
       setStep("couriers");
     } catch (e) { setError(e.message); }

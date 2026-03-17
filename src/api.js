@@ -143,7 +143,7 @@ export function getAdminPdfUrl(orderId) { return `${API_URL}/api/orders/${orderI
 
 // ── SHIPROCKET ──
 export async function srCreateShipment(orderId) { return api("/api/admin/shiprocket/ship", { method: "POST", body: JSON.stringify({ orderId }), headers: ah() }); }
-export async function srGetCouriers(shipmentId) { return api("/api/admin/shiprocket/couriers", { method: "POST", body: JSON.stringify({ shipmentId }), headers: ah() }); }
+export async function srGetCouriers(shipmentId, orderId) { return api("/api/admin/shiprocket/couriers", { method: "POST", body: JSON.stringify({ shipmentId, orderId }), headers: ah() }); }
 export async function srAssignCourier(shipmentId, courierId, orderId) { return api("/api/admin/shiprocket/assign", { method: "POST", body: JSON.stringify({ shipmentId, courierId, orderId }), headers: ah() }); }
 export async function srTrack(orderId) { return api(`/api/admin/shiprocket/track/${orderId}`, { headers: ah() }); }
 export async function srCancel(orderId) { return api("/api/admin/shiprocket/cancel", { method: "POST", body: JSON.stringify({ orderId }), headers: ah() }); }
