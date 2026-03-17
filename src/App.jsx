@@ -314,8 +314,10 @@ export default function App(){const[page,setPage]=useState("home");const[user,se
 
 useEffect(()=>{
   if(api.isLoggedIn()){api.getProfile().then(u=>setUser(u)).catch(()=>api.signout());}
-  // Track visit
-  try{fetch(api.API_URL+"/api/visit",{method:"POST",headers:{"Content-Type":"application/json"}});}catch(e){}
+  // Track visit with unique visitor ID
+  let vid=localStorage.getItem("pk_vid");
+  if(!vid){vid="v_"+Date.now()+"_"+Math.random().toString(36).slice(2);localStorage.setItem("pk_vid",vid);}
+  try{fetch(api.API_URL+"/api/visit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({vid})});}catch(e){}
 },[]);
 
 const proceed=(d,fileOrFiles)=>{

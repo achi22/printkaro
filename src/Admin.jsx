@@ -509,8 +509,8 @@ export default function AdminDashboard() {
           <StatCard icon="⏳" label="PENDING" value={stats.pendingOrders || 0} color="#f59e0b" />
           <StatCard icon="👥" label="CUSTOMERS" value={stats.totalCustomers || 0} color="#0ea5e9" onClick={() => setShowCustomers(true)} />
           <StatCard icon="💰" label="REVENUE" value={`₹${(stats.totalRevenue || 0).toLocaleString("en-IN")}`} color="#22c55e" />
-          <StatCard icon="👁️" label="VISITS TODAY" value={stats.todayVisits || 0} sub={`${stats.todayUnique || 0} unique`} color="#ec4899" />
-          <StatCard icon="🌐" label="TOTAL VISITS" value={stats.totalVisits || 0} sub={`${stats.totalUnique || 0} unique`} color="#6366f1" />
+          <StatCard icon="👁️" label="TODAY" value={`${stats.todayUnique || 0} people`} sub={`${stats.todayVisits || 0} page views`} color="#ec4899" />
+          <StatCard icon="🌐" label="ALL TIME" value={`${stats.totalUnique || 0} people`} sub={`${stats.totalVisits || 0} page views`} color="#6366f1" />
         </div>
 
         {tab === "analytics" && (
