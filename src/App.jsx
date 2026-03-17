@@ -33,6 +33,8 @@ const FRAME_OPTS=[
   {id:"empty",name:"Empty Frame",price:50,icon:"🪟"},
 ];
 
+const MAX_FILE_MB=200;
+
 function HomePage({onProceed}){
 const[files,setFiles]=useState([]);
 const[drag,setDrag]=useState(false);
@@ -42,7 +44,6 @@ const isImage=(f)=>/\.(jpg|jpeg|png|gif|webp|bmp|heic)$/i.test(f.name)||f.type.s
 
 const countPages=(f,cb)=>{const r=new FileReader();r.onload=e=>{const s=new TextDecoder("latin1").decode(new Uint8Array(e.target.result));const m=s.match(/\/Type\s*\/Page[^s]/g);cb(Math.max(1,m?m.length:Math.ceil(f.size/30000)||1));};r.readAsArrayBuffer(f);};
 
-const MAX_FILE_MB=200;
 const addFiles=(fileList)=>{const rejected=[];Array.from(fileList).forEach(f=>{
   const sizeMB=f.size/(1024*1024);
   if(sizeMB>MAX_FILE_MB){rejected.push(`${f.name} (${sizeMB.toFixed(1)}MB)`);return;}
@@ -351,7 +352,9 @@ const handlePay=async(paymentMethod)=>{
           }
           
           try{
-            const up=await api.uploadPDF(f);
+            const up=await api.uploadPDF(f,(pct)=>{
+              setOrderMsg(`Uploading file ${i+1}/${fileObj.length}: ${f.name} — ${pct}%`);
+            });
             if(up.filePath) filePaths.push(up.filePath);
             else failedFiles.push(f.name);
           }catch(e){
